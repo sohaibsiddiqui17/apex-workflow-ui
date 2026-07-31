@@ -1,0 +1,894 @@
+<html>
+
+<head>
+
+    <meta charset="UTF-8">
+    <title>Apexlogistics Login</title>
+
+
+
+    <meta charset="utf-8">
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+
+    <!-- Bootstrap 3.3.5 -->
+    <link rel="stylesheet" href="/static/adminlte/bootstrap/css/bootstrap.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/plugins/font-awesome-4.5.0/css/font-awesome.min.css">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="/static/plugins/ionicons-2.0.1/css/ionicons.min.css">
+    <link rel="stylesheet" href="/static/adminlte/dist/css/AdminLTE-local.min.css">
+
+    <link type="text/css" rel="stylesheet" href="/static/css/animate.css">
+    <link rel="stylesheet" href="/static/adminlte/plugins/iCheck/square/grey.css">
+    <link type="text/css" rel="stylesheet" href="/static/css/login.css?v=2.0.2">
+    <link type="text/css" rel="stylesheet" href="/static/plugins/element-ui/index.css">
+    <link rel="shortcut icon" href="/static/image/favicon.ico">
+    <script>
+        var authUrlList = []
+        const passwordStrength = eval("1")
+    </script>
+</head>
+
+<body class="hold-transition login-page" style="">
+    <div class="container">
+        <div class="content-box login-box">
+            <div class="login-box-body animated fadeInRight">
+                <!-- token -->
+                <input id="tokenInput" type="hidden" style="display: none;">
+
+                <!-- LOGO -->
+                <div class="login-box-logos">
+                    <div class="logo icon-apex-branding-left"></div>
+                    <div class="logo icon-apex-branding-right"></div>
+                </div>
+
+                <!-- 用户登录表单 -->
+                <form id="loginForm">
+                    <h1 class="form-box-title">Sign in</h1>
+                    <div class="form-group has-feedback">
+                        <label>Account<span class="required-span">*</span></label>
+                        <input type="text" id="username" name="userName" class="form-control" placeholder="Username"
+                            maxlength="50">
+                        <span class="form-control-feedback"><i class="fa fa-user" aria-hidden="true"></i></span>
+                    </div>
+                    <div class="form-group has-feedback">
+                        <label>Password<span class="required-span">*</span></label>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Password"
+                            maxlength="50">
+                        <span class="form-control-feedback"><i class="fa fa-lock" aria-hidden="true"></i></span>
+                    </div>
+
+                    <input type="hidden" id="isCaptcha" name="isCaptcha" value="0">
+                    <!--根据全局设定返回结果是否需要开启验证码 -->
+
+                    <div class="form-group remember-me-row">
+                        <div class="remember-me-checkbox">
+                            <div class="icheckbox_square-grey" aria-checked="false" aria-disabled="false"><input
+                                    id="rememberMe" type="checkbox" name="rememberMe" value="0"
+                                    style="position: absolute; opacity: 0;"><ins class="iCheck-helper"
+                                    style="position: absolute; top: 0%; left: 0%; display: block; width: 100%; height: 100%; margin: 0px; padding: 0px; background: rgb(255, 255, 255); border: 0px; opacity: 0; cursor: pointer;"></ins>
+                            </div>
+                            <label for="rememberMe">Remember me</label>
+                        </div>
+                        <div class="reset-password-btn" onclick="resetPwdVueIns.dialogVisible = true">Forgot your
+                            password?</div>
+                    </div>
+
+                    <!-- 登录失败提示信息 -->
+                    <div id="msg" class="text-danger" style="display: none;"></div>
+                    <!--隐藏的IFRAME-->
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ocean.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ocean.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://wms.apex-wms.com/apex_sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://wms.apex-wms.com/apex_sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://wms.apex-oms.com/apex_sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://wms.apex-oms.com/apex_sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://www.apexworkflow.com/static/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://www.apexworkflow.com/static/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xcplugec.apexworkflow.com/xc_web/login/sso" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xcplugec.apexworkflow.com/xc_web/login/sso')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xa-report.apexworkflow.com/SSO" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xa-report.apexworkflow.com/SSO')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://system.apexworkflow.com/sso/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://system.apexworkflow.com/sso/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xcplugec.apexworkflow.com/html/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xcplugec.apexworkflow.com/html/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://sheet.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://sheet.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://wms.apexworkflow.com/static/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://wms.apexworkflow.com/static/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xcimport.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xcimport.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://missdata.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://missdata.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-hn.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-hn.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-hn-cn.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-hn-cn.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://airlineresource.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://airlineresource.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://hd-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://hd-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://hn-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://hn-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xdoc.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xdoc.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://bulletinboard.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://bulletinboard.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ep.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ep.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-hd.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-hd.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-hd-cn.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-hd-cn.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://profitshare.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://profitshare.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://finance.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://finance.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-sea.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-sea.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-sea.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-sea.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-hz-cn.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-hz-cn.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://hz-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://hz-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-hz.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-hz.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ediservice.apexworkflow.com/html/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ediservice.apexworkflow.com/html/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-hb-cn.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-hb-cn.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-hb.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-hb.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://hb-port.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://hb-port.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://api.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://api.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ss.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ss.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://chargecode.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://chargecode.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://aliae.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://aliae.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xa-report.apexworkflow.com/sso" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xa-report.apexworkflow.com/sso')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://apexediportal.azurewebsites.net/Login/sso" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://apexediportal.azurewebsites.net/Login/sso')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://sea-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://sea-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://masterdata.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://masterdata.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://dataservice.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://dataservice.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://wms-web-us.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://wms-web-us.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://split-us.apexglobe.info:13943/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://split-us.apexglobe.info:13943/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-eu.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-eu.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-eu.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-eu.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://eu-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://eu-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://wms-dashboard.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://wms-dashboard.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://leg2.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://leg2.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://leg3.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://leg3.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-ea.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-ea.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-ea.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-ea.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ea-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ea-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://price.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://price.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://billing.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://billing.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://tms.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://tms.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://oe-bcl.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://oe-bcl.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xcimport.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xcimport.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://shortcut-tool-web.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://shortcut-tool-web.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ecommerce.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ecommerce.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://trip-tms-hd-cn.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://trip-tms-hd-cn.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://dwo-tms-hd-cn.apexworkflow.com/backend/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://dwo-tms-hd-cn.apexworkflow.com/backend/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://esb.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://esb.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://navigator.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://navigator.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://wmsweb-apac.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://wmsweb-apac.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://costportal.apexglobe.info/SSO" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://costportal.apexglobe.info/SSO')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://simpleprice.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://simpleprice.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://scvuebilling-d2.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://scvuebilling-d2.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://us-scvuebilling.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://us-scvuebilling.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://eu-scvuebilling.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://eu-scvuebilling.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://simplearm.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://simplearm.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://quote.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://quote.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://aepweb.apexglobe.info/Home/SSO" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://aepweb.apexglobe.info/Home/SSO')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://aepweb.apexglobe.info/Home/SSO" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://aepweb.apexglobe.info/Home/SSO')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://task.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://task.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://customerbsa.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://customerbsa.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://itas.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://itas.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-us.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-us.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-us.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-us.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://us-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://us-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://milestone.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://milestone.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://abc.apexworkflow.com/xcsso" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://abc.apexworkflow.com/xcsso')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://xa-report.apexglobe.info/SSO" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://xa-report.apexglobe.info/SSO')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://baselevel.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://baselevel.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://temp-ocean.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://temp-ocean.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://app-logs.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://app-logs.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://appoint.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://appoint.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://addressbook.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://addressbook.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://tms-non-us.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://tms-non-us.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://booking.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://booking.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://wms-web-hd.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://wms-web-hd.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ibm.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ibm.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://split-cn.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://split-cn.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://split-ea.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://split-ea.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://split-we.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://split-we.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ae-can.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ae-can.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://edispatch-can.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://edispatch-can.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://can-port.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://can-port.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://po.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://po.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://orders-tms.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://orders-tms.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://documentservice.apexworkflow.com/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://documentservice.apexworkflow.com/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://opex.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://opex.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://truckquote.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://truckquote.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://us-oceanbol.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://us-oceanbol.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://split-us.apexglobe.info/sso.html" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://split-us.apexglobe.info/sso.html')
+                        </script>
+                    </div>
+                    <div id="bodyframe" style="display: none">
+                        <iframe src="https://ol.apexglobe.info/xcsso" frameborder="0"></iframe>
+                        <script>
+                            authUrlList.push('https://ol.apexglobe.info/xcsso')
+                        </script>
+                    </div>
+                    <div class="form-group  btn-row">
+                        <input type="hidden" id="redirectUrl" name="redirectUrl" value="http://www.apexworkflow.com/">
+                        <button type="button" id="login" class="btn btn-primary btn-block btn-flat btn-login"><i
+                                class="fa fa-sign-in" aria-hidden="true" style="margin-right: 5px;"></i>Login</button>
+                        <button type="reset" id="reset" class="btn btn-nomal btn-block btn-flat btn-reset second-btn"
+                            style="margin-bottom: 0!important;"><i class="fa fa-refresh"
+                                aria-hidden="true"></i>Reset</button>
+                        <div class="span-container">
+                            <span class="span-line start"></span>
+                            <span class="span-content">or sign in with</span>
+                            <span class="span-line end"></span>
+                        </div>
+                        <button id="office365Button" type="button" class="btn btn-block btn-flat btn-login second-btn">
+                            <i class="icon-office365"></i>
+                            Microsoft Office 365
+                        </button>
+                    </div>
+                </form>
+
+                <!-- 密码即将过期、弱口令提示信息 -->
+                <div id="passwordTips" class="password-tips animated flipInY">
+                    <div id="tipsContent" class="alert alert-warning" role="alert"></div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <button type="button" id="changePasswordBtn" class="btn btn-primary"
+                                style="width: 100%">Change Password</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 密码修改表单 -->
+                <form id="changePasswordForm" class="change-password-card animated flipInY">
+                    <div class="form-group card-title">
+                        <h3 class="form-box-title">Change Password</h3>
+                    </div>
+                    <div class="form-group has-feedback">
+                        <input type="password" id="oldPassword" name="oriPassword" class="form-control"
+                            placeholder="Old Password" maxlength="50">
+                        <span class="form-control-feedback"><i class="fa fa-lock password-icon"
+                                aria-hidden="true"></i></span>
+                    </div>
+                    <div class="form-group has-feedback">
+                        <input type="password" id="newPassword" name="newPassword" class="form-control"
+                            placeholder="New Password" maxlength="50"
+                            style="background: none 0% 0% / auto repeat scroll padding-box border-box rgb(255, 255, 255); color: rgb(51, 51, 51);">
+                        <span class="form-control-feedback"><i class="fa fa-lock password-icon"
+                                aria-hidden="true"></i></span>
+                    </div>
+                    <div class="form-group has-feedback">
+                        <input type="password" id="newPasswordConfirm" class="form-control"
+                            placeholder="New Password Confirm" maxlength="50"
+                            style="background: none 0% 0% / auto repeat scroll padding-box border-box rgb(255, 255, 255); color: rgb(51, 51, 51);">
+                        <span class="form-control-feedback"><i class="fa fa-lock password-icon"
+                                aria-hidden="true"></i></span>
+                    </div>
+                    <!-- 密码修改提示信息 -->
+                    <div id="changePasswordMsg" class="text-danger" style="display: none;"></div>
+                    <div class="form-group btn-row btn-list">
+                        <button type="button" id="saveBtn" class="btn btn-block btn-flat primary-btn"><i
+                                class="fa fa-pencil-square-o" aria-hidden="true"></i>Change</button>
+                        <button type="button" id="backBtn" class="btn btn-nomal btn-block btn-flat btn-reset"><i
+                                class="fa fa-reply" aria-hidden="true"></i>Back</button>
+                    </div>
+                </form>
+
+                <!-- 密码修改成功后的提示信息 -->
+                <div id="changePasswordResult" class="change-password-result-card animated flipInY">
+                    <i class="fa fa-check-circle" aria-hidden="true"></i>
+                    <span>Password change success! &nbsp;</span><br>
+                    <span class="sub-text"><span id="timer"></span><span>s later jump to the login page.</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="systemChosenDiv" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel">
+            <div class="modal-dialog" role="document" style="margin-top: 200px;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            onclick="closeConfirmDialog()"><span aria-hidden="true">×</span></button>
+                        <h4 class="modal-title" id="exampleModalLabel" style="text-align: center;">Selected System &amp;
+                            Office</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="office-container">
+                            <div class="item1">Selected:</div>
+                            <div class="office-header">
+                                <span class="system-name"></span>
+                                <span class="office-name"></span>
+                                <span class="office-label">Last Selected</span>
+                            </div>
+                        </div>
+                        <ul class="nav nav-tabs" role="tablist">
+                        </ul>
+                        <div class="tab-content">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" onclick="confirmSwitchOffice()">Confirm</button>
+                        <button type="button" class="btn btn-default" data-dismiss="modal"
+                            onclick="closeConfirmDialog()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 账户锁定提示框 -->
+        <div class="modal fade" id="accountLockModal" tabindex="-2" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document" style="width: 680px;margin-top: 280px;">
+                <button type="button" @click="closeSendEmailDialog" data-dismiss="modal" aria-label="Close"
+                    style="position: absolute;top: 3px; right: 9px;z-index: 19950405;font-size: 28px;"><span
+                        aria-hidden="true">×</span></button>
+                <div class="modal-content" style="width: 680px;height: 180px;padding: 50px 0 30px 0;">
+                    <div style="height: 50px;font-size: 18px;font-weight: 600;">
+                        <div style="text-align: center;"><span>Your account has been locked.</span></div>
+                        <div style="text-align: center;">
+                            <span>Please verify and reset your password. Or contact Support IT to unlock.</span>
+                        </div>
+                    </div>
+                    <div style="text-align: center;margin-top: 25px;">
+                        <button class="lock-account-button reset-button">Reset Password</button>
+                        <button class="lock-account-button cancel-button">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 密码重置框 -->
+        <div id="resetPassMain">
+            <div class="el-dialog__wrapper" style="display: none;">
+                <div role="dialog" aria-modal="true" aria-label="dialog" class="el-dialog"
+                    style="margin-top: 15vh; width: 650px;">
+                    <div class="el-dialog__header"><span class="el-dialog__title"></span><button type="button"
+                            aria-label="Close" class="el-dialog__headerbtn"><i
+                                class="el-dialog__close el-icon el-icon-close"></i></button></div><!----><!---->
+                </div>
+            </div>
+            <div class="el-dialog__wrapper doReset-dialog" style="display: none;">
+                <div role="dialog" aria-modal="true" aria-label="Reset Password" class="el-dialog"
+                    style="margin-top: 15vh; width: 480px;">
+                    <div class="el-dialog__header"><span class="el-dialog__title">Reset Password</span><button
+                            type="button" aria-label="Close" class="el-dialog__headerbtn"><i
+                                class="el-dialog__close el-icon el-icon-close"></i></button></div><!----><!---->
+                </div>
+            </div>
+        </div>
+
+        <!--邮箱重置-->
+        <div id="resetEmail" class="reset-email-box">
+            <div class="el-dialog__wrapper" style="display: none;">
+                <div role="dialog" aria-modal="true" aria-label="E-mail Verification" class="el-dialog"
+                    style="margin-top: 15vh;">
+                    <div class="el-dialog__header"><span class="el-dialog__title">E-mail Verification</span><button
+                            type="button" aria-label="Close" class="el-dialog__headerbtn"><i
+                                class="el-dialog__close el-icon el-icon-close"></i></button></div><!----><!---->
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <p><span>Privacy Policy</span> © 2024 Apexlogistics</p>
+    </footer>
+
+
+
+
+    <script src="/static/adminlte/plugins/jQuery/jquery-2.2.3.min.js"></script>
+    <!-- Bootstrap 3.3.5 -->
+    <script src="/static/adminlte/bootstrap/js/bootstrap.min.js"></script>
+
+    <script src="/static/plugins/vue/vue.min.js"></script>
+    <script src="/static/plugins/element-ui/index.js"></script>
+    <script src="/static/plugins/passwordStrength/pStrength.jquery.js"></script>
+    <script src="/static/adminlte/plugins/iCheck/icheck.min.js"></script>
+    <script src="/static/js/login.js?v=2.0.0"></script>
+</body><!-- jQuery 2.1.4 -->
+
+</html>

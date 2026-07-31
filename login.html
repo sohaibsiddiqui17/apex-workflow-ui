@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Workflow — Sign In</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #2B7FFF;
+      --accent-dim: rgba(43,127,255,0.12);
+      --bg: #0D1B2A;
+      --bg-card: #132336;
+      --border: rgba(255,255,255,0.1);
+      --text: #E2E8F0;
+      --text-muted: #8FA8C0;
+      --danger: #EF4444;
+      --font: 'Inter', system-ui, sans-serif;
+    }
+    html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .login-wrap {
+      width: 100%; max-width: 420px; padding: 24px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 12px;
+      justify-content: center; margin-bottom: 40px;
+    }
+    .brand-icon {
+      width: 40px; height: 40px; background: var(--accent); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #fff;
+    }
+    .brand-name { font-size: 20px; font-weight: 700; color: #fff; }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 36px 32px;
+    }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 28px; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+    .input-wrap { position: relative; }
+    .input-wrap i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; }
+    input[type="text"], input[type="password"] {
+      width: 100%; padding: 10px 12px 10px 36px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 13px;
+      outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(43,127,255,0.2); }
+    .row-check { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .check-label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); cursor: pointer; }
+    .check-label input { width: 14px; height: 14px; accent-color: var(--accent); }
+    .forgot { font-size: 12.5px; color: var(--accent); text-decoration: none; }
+    .forgot:hover { text-decoration: underline; }
+    .btn-primary {
+      width: 100%; padding: 11px; background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; font-family: var(--font); font-size: 13.5px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover { background: #1a6fe8; box-shadow: 0 4px 16px rgba(43,127,255,0.35); }
+    .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; }
+    .divider span { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .btn-office {
+      width: 100%; padding: 10px; background: none; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 13px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .btn-office:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); }
+    .office-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+    .footer-text { text-align: center; margin-top: 28px; font-size: 12px; color: var(--text-muted); }
+    .error-msg { color: var(--danger); font-size: 12px; margin-top: -10px; margin-bottom: 12px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="brand">
+      <div class="brand-icon">AX</div>
+      <span class="brand-name">Apex Workflow</span>
+    </div>
+    <div class="card">
+      <h1>Sign in</h1>
+      <p class="subtitle">Enterprise Logistics Portal — XC Import</p>
+
+      <form id="loginForm" onsubmit="doLogin(event)">
+        <div class="form-group">
+          <label for="username">Account <span style="color:#EF4444">*</span></label>
+          <div class="input-wrap">
+            <i class="fa fa-user"></i>
+            <input type="text" id="username" placeholder="Username" autocomplete="username" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">Password <span style="color:#EF4444">*</span></label>
+          <div class="input-wrap">
+            <i class="fa fa-lock"></i>
+            <input type="password" id="password" placeholder="Password" autocomplete="current-password" required>
+          </div>
+        </div>
+        <div id="errorMsg" class="error-msg">Invalid credentials. Please try again.</div>
+        <div class="row-check">
+          <label class="check-label">
+            <input type="checkbox" id="rememberMe"> Remember me
+          </label>
+          <a href="#" class="forgot">Forgot your password?</a>
+        </div>
+        <button type="submit" class="btn-primary">
+          <i class="fa fa-right-to-bracket"></i> Login
+        </button>
+      </form>
+
+      <div class="divider"><span>or sign in with</span></div>
+      <button class="btn-office" onclick="window.location='index.html'">
+        <svg class="office-icon" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+          <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+        </svg>
+        Microsoft Office 365
+      </button>
+    </div>
+    <p class="footer-text">Privacy Policy &nbsp;·&nbsp; © 2024 Apexlogistics</p>
+  </div>
+
+  <script>
+    function doLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value;
+      if (u && p) {
+        window.location.href = 'index.html';
+      } else {
+        document.getElementById('errorMsg').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

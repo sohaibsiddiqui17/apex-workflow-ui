@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Workflow — XC Import</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-w: 248px;
+      --sidebar-collapsed-w: 60px;
+      --topbar-h: 44px;
+      --bg-sidebar: #0D1B2A;
+      --bg-sidebar-hover: #1A2D42;
+      --bg-sidebar-active: #163A5F;
+      --accent: #2B7FFF;
+      --accent-dim: rgba(43,127,255,0.15);
+      --accent-glow: rgba(43,127,255,0.35);
+      --bg-main: #F0F4F8;
+      --bg-white: #FFFFFF;
+      --text-sidebar: #8FA8C0;
+      --text-sidebar-active: #FFFFFF;
+      --text-body: #1E293B;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --danger: #EF4444;
+      --success: #10B981;
+      --warning: #F97316;
+      --sidebar-transition: 0.22s cubic-bezier(0.4,0,0.2,1);
+      --font: 'Inter', system-ui, sans-serif;
+    }
+
+    html, body { height: 100%; overflow: hidden; background: var(--bg-main); font-family: var(--font); color: var(--text-body); font-size: 13px; }
+    #app { display: flex; height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      display: flex; flex-direction: column;
+      transition: width var(--sidebar-transition), min-width var(--sidebar-transition);
+      overflow: hidden; position: relative; z-index: 10;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    #sidebar.collapsed { width: var(--sidebar-collapsed-w); min-width: var(--sidebar-collapsed-w); }
+
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; height: 56px; min-height: 56px;
+      border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+    }
+    .brand-icon {
+      width: 32px; height: 32px; min-width: 32px;
+      background: var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.5px;
+    }
+    .brand-text { color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; opacity: 1; transition: opacity var(--sidebar-transition); }
+    #sidebar.collapsed .brand-text { opacity: 0; }
+
+    .sidebar-user {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.07);
+      cursor: pointer; position: relative; flex-shrink: 0;
+    }
+    .sidebar-user:hover { background: var(--bg-sidebar-hover); }
+    .user-avatar {
+      width: 32px; height: 32px; min-width: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #2B7FFF, #7C3AED);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; color: #fff;
+    }
+    .user-meta { overflow: hidden; flex: 1; }
+    .user-company { font-size: 10px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .user-name { font-size: 12px; color: var(--text-sidebar-active); font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .user-caret { color: var(--text-sidebar); font-size: 10px; margin-left: auto; flex-shrink: 0; }
+    #sidebar.collapsed .user-meta, #sidebar.collapsed .user-caret { display: none; }
+
+    .user-dropdown {
+      position: absolute; top: 100%; left: 12px;
+      background: #1A2D42; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 4px; z-index: 200; min-width: 180px;
+      display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .user-dropdown.open { display: block; }
+    .user-dropdown a {
+      display: block; padding: 8px 12px; color: var(--text-sidebar);
+      text-decoration: none; border-radius: 5px; font-size: 12px; transition: background 0.1s;
+    }
+    .user-dropdown a:hover { background: var(--bg-sidebar-active); color: #fff; }
+    .user-dropdown .divider { border-top: 1px solid rgba(255,255,255,0.07); margin: 4px 0; }
+
+    .sidebar-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 0; }
+    .sidebar-nav::-webkit-scrollbar { width: 3px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    .nav-section-label {
+      padding: 12px 16px 4px;
+      font-size: 10px; font-weight: 600; color: rgba(143,168,192,0.5);
+      letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap;
+      transition: opacity var(--sidebar-transition);
+    }
+    #sidebar.collapsed .nav-section-label { opacity: 0; }
+
+    .nav-item { position: relative; }
+    .nav-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 16px; color: var(--text-sidebar);
+      cursor: pointer; text-decoration: none;
+      transition: background 0.12s, color 0.12s;
+      white-space: nowrap; overflow: hidden; user-select: none;
+    }
+    .nav-link:hover { background: var(--bg-sidebar-hover); color: var(--text-sidebar-active); }
+    .nav-link.active { background: var(--bg-sidebar-active); color: var(--text-sidebar-active); }
+    .nav-link.active .nav-icon { color: var(--accent); }
+    .nav-icon { width: 16px; min-width: 16px; text-align: center; font-size: 13px; }
+    .nav-label { font-size: 12.5px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; transition: opacity var(--sidebar-transition); }
+    #sidebar.collapsed .nav-label { opacity: 0; pointer-events: none; }
+    .nav-arrow { font-size: 9px; transition: transform 0.18s; margin-left: auto; flex-shrink: 0; }
+    .nav-arrow.open { transform: rotate(90deg); }
+    #sidebar.collapsed .nav-arrow { opacity: 0; }
+
+    .sub-nav { overflow: hidden; max-height: 0; transition: max-height 0.22s ease; }
+    .sub-nav.open { max-height: 800px; }
+    .sub-nav .nav-link { padding-left: 42px; font-size: 12px; }
+    .sub-nav .nav-link .nav-icon { display: none; }
+    .sub-nav-3 .nav-link { padding-left: 58px; }
+
+    .sidebar-footer { border-top: 1px solid rgba(255,255,255,0.07); padding: 8px; flex-shrink: 0; }
+    .collapse-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 8px; background: none; border: none; cursor: pointer;
+      color: var(--text-sidebar); border-radius: 6px;
+      transition: background 0.12s, color 0.12s; font-family: var(--font);
+    }
+    .collapse-btn:hover { background: var(--bg-sidebar-hover); color: var(--text-sidebar-active); }
+    .collapse-btn-label { font-size: 12px; font-weight: 500; white-space: nowrap; opacity: 1; transition: opacity var(--sidebar-transition); }
+    #sidebar.collapsed .collapse-btn-label { opacity: 0; }
+    .collapse-icon { width: 16px; min-width: 16px; text-align: center; transition: transform var(--sidebar-transition); }
+    #sidebar.collapsed .collapse-icon { transform: rotate(180deg); }
+
+    /* collapsed tooltip */
+    #sidebar.collapsed .nav-link[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; left: calc(var(--sidebar-collapsed-w) + 6px); top: 50%;
+      transform: translateY(-50%);
+      background: #1A2D42; color: #fff; font-size: 12px;
+      padding: 5px 10px; border-radius: 5px; white-space: nowrap;
+      pointer-events: none; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* ── MAIN ── */
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── TAB BAR ── */
+    #tabbar {
+      height: var(--topbar-h); min-height: var(--topbar-h);
+      background: var(--bg-white); border-bottom: 1px solid var(--border);
+      display: flex; align-items: stretch; overflow: hidden; flex-shrink: 0;
+    }
+    .tabbar-left {
+      display: flex; align-items: center; padding: 0 8px; gap: 4px;
+      border-right: 1px solid var(--border);
+    }
+    .tabbar-left button {
+      width: 28px; height: 28px; border: none; background: none;
+      border-radius: 5px; cursor: pointer; color: var(--text-muted);
+      font-size: 12px; display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s, color 0.1s;
+    }
+    .tabbar-left button:hover { background: var(--bg-main); color: var(--text-body); }
+    .tabs-scroll { flex: 1; display: flex; align-items: stretch; overflow-x: auto; }
+    .tabs-scroll::-webkit-scrollbar { display: none; }
+    .tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 14px; white-space: nowrap; cursor: pointer;
+      font-size: 12.5px; font-weight: 500; color: var(--text-muted);
+      border-right: 1px solid var(--border); position: relative;
+      transition: background 0.1s, color 0.1s; user-select: none; min-width: 90px;
+    }
+    .tab:hover { background: var(--bg-main); color: var(--text-body); }
+    .tab.active { background: var(--bg-main); color: var(--accent); }
+    .tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent); }
+    .tab-close {
+      width: 16px; height: 16px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+      color: inherit; font-size: 9px; opacity: 0.5;
+      transition: background 0.1s, opacity 0.1s; margin-left: 2px;
+    }
+    .tab-close:hover { background: rgba(0,0,0,0.1); opacity: 1; }
+    .tabbar-right {
+      display: flex; align-items: center; padding: 0 8px; gap: 4px;
+      border-left: 1px solid var(--border);
+    }
+    .tabbar-right button {
+      display: flex; align-items: center; gap: 5px;
+      height: 28px; padding: 0 10px; border: none;
+      background: none; border-radius: 5px; cursor: pointer;
+      font-size: 12px; font-weight: 500; color: var(--text-muted);
+      font-family: var(--font); transition: background 0.1s, color 0.1s;
+    }
+    .tabbar-right button:hover { background: var(--bg-main); color: var(--text-body); }
+    .logout-btn { color: var(--danger) !important; }
+    .logout-btn:hover { background: rgba(239,68,68,0.08) !important; }
+
+    /* more dropdown */
+    .more-wrap { position: relative; }
+    .more-menu {
+      position: absolute; top: calc(100% + 4px); right: 0;
+      background: var(--bg-white); border: 1px solid var(--border);
+      border-radius: 8px; padding: 4px; z-index: 100; min-width: 180px;
+      display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .more-menu.open { display: block; }
+    .more-menu a {
+      display: block; padding: 8px 12px; border-radius: 5px;
+      font-size: 12px; color: var(--text-body); text-decoration: none;
+      cursor: pointer; transition: background 0.1s;
+    }
+    .more-menu a:hover { background: var(--bg-main); }
+    .more-menu .divider { border-top: 1px solid var(--border); margin: 4px 0; }
+
+    /* ── CONTENT ── */
+    #content { flex: 1; overflow: hidden; position: relative; background: var(--bg-main); }
+    .content-panel { position: absolute; inset: 0; display: none; flex-direction: column; overflow: hidden; }
+    .content-panel.active { display: flex; }
+
+    /* scrollable inner */
+    .panel-scroll { flex: 1; overflow-y: auto; padding: 24px; }
+    .panel-scroll::-webkit-scrollbar { width: 5px; }
+    .panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+
+    /* ── HOME PANEL ── */
+    .home-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px; align-content: start;
+    }
+    .section-header {
+      grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding-top: 8px;
+    }
+    .section-header h2 { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.6px; text-transform: uppercase; }
+    .section-line { flex: 1; height: 1px; background: var(--border); }
+    .stat-card {
+      background: var(--bg-white); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: box-shadow 0.15s;
+    }
+    .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+    .stat-card-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .stat-card-value { font-size: 24px; font-weight: 700; }
+    .stat-card-label { font-size: 11.5px; color: var(--text-muted); font-weight: 500; }
+    .stat-card-delta { font-size: 11px; font-weight: 600; }
+    .delta-up { color: var(--success); }
+    .delta-down { color: var(--danger); }
+    .quick-card {
+      background: var(--bg-white); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; text-decoration: none; color: var(--text-body);
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .quick-card:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .quick-card-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--accent-dim); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .quick-card-label { font-size: 12.5px; font-weight: 500; }
+    .quick-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── PAGE HEADER (shared by inner pages) ── */
+    .page-header {
+      padding: 16px 24px 0; display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .page-title { font-size: 16px; font-weight: 700; }
+    .page-breadcrumb { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+    .page-actions { display: flex; gap: 8px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 7px; font-size: 12.5px;
+      font-weight: 500; font-family: var(--font); cursor: pointer;
+      border: 1px solid transparent; transition: all 0.12s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:hover { background: #1a6fe8; }
+    .btn-outline { background: #fff; color: var(--text-body); border-color: var(--border); }
+    .btn-outline:hover { border-color: #cbd5e1; background: var(--bg-main); }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 12px 24px; flex-shrink: 0;
+    }
+    .filter-input {
+      padding: 7px 10px; border: 1px solid var(--border);
+      border-radius: 7px; font-family: var(--font); font-size: 12.5px;
+      color: var(--text-body); background: #fff; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .filter-input.wide { min-width: 200px; }
+    select.filter-input { cursor: pointer; }
+    .filter-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      flex: 1; overflow: auto; margin: 0 24px 24px;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: #fff;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    thead th {
+      padding: 10px 14px; text-align: left;
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 0.4px; text-transform: uppercase;
+      background: #F8FAFC; border-bottom: 1px solid var(--border);
+      white-space: nowrap; position: sticky; top: 0; z-index: 1;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #F8FAFC; }
+    td { padding: 10px 14px; vertical-align: middle; white-space: nowrap; }
+    td a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    td a:hover { text-decoration: underline; }
+
+    /* badges */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge-green { background: #DCFCE7; color: #166534; }
+    .badge-blue { background: #DBEAFE; color: #1e40af; }
+    .badge-orange { background: #FFEDD5; color: #9a3412; }
+    .badge-red { background: #FEE2E2; color: #991b1b; }
+    .badge-gray { background: #F1F5F9; color: #475569; }
+    .badge-purple { background: #F3E8FF; color: #6b21a8; }
+
+    /* ── UPDATE ATD/ATA FORM ── */
+    .form-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px; padding: 24px;
+    }
+    .form-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .form-card-title { font-size: 13px; font-weight: 600; color: var(--text-body); padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 11.5px; font-weight: 500; color: var(--text-muted); }
+    .field input, .field select {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
+      font-family: var(--font); font-size: 12.5px; color: var(--text-body);
+      outline: none; transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+    .field input[type="datetime-local"] { cursor: pointer; }
+    .field-full { grid-column: 1 / -1; }
+    .form-footer { padding: 0 24px 24px; display: flex; gap: 8px; }
+
+    /* search result card */
+    .search-card {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin: 0 24px 16px;
+    }
+    .search-card-row { display: flex; flex-wrap: wrap; gap: 16px; }
+    .search-card-field { display: flex; flex-direction: column; gap: 3px; min-width: 160px; }
+    .search-card-field .lbl { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+    .search-card-field .val { font-size: 13px; font-weight: 600; color: var(--text-body); }
+
+    /* placeholder panel */
+    .placeholder-panel {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px; color: var(--text-muted);
+    }
+    .placeholder-panel i { font-size: 36px; opacity: 0.25; }
+    .placeholder-panel .ph-title { font-size: 15px; font-weight: 600; color: var(--text-body); }
+    .placeholder-panel .ph-sub { font-size: 13px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ SIDEBAR ══ -->
+  <nav id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">AX</div>
+      <span class="brand-text">Apex Workflow</span>
+    </div>
+
+    <div class="sidebar-user" id="userToggle">
+      <div class="user-avatar">AH</div>
+      <div class="user-meta">
+        <div class="user-company">APEX-SFO</div>
+        <div class="user-name">ASIF.HASAN</div>
+      </div>
+      <i class="fa fa-chevron-down user-caret"></i>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="#">Profile</a>
+        <a href="#">Change Password</a>
+        <a href="#">Change System &amp; Office</a>
+        <div class="divider"></div>
+        <a href="login.html" style="color:#EF4444">Log Out</a>
+      </div>
+    </div>
+
+    <div class="sidebar-nav">
+
+      <div class="nav-item">
+        <a class="nav-link" data-tip="Update ATD&ATA" data-tab="Update ATD&amp;ATA" data-page="update-ata" onclick="navClick(this)">
+          <i class="nav-icon fa fa-gauge-high"></i>
+          <span class="nav-label">Update ATD &amp; ATA</span>
+        </a>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-link" onclick="toggleNav(this)">
+          <i class="nav-icon fa fa-paper-plane"></i>
+          <span class="nav-label">US</span>
+          <i class="nav-arrow fa fa-chevron-right"></i>
+        </div>
+        <div class="sub-nav">
+          <div class="nav-link" data-tab="DN List" onclick="navClick(this)"><span class="nav-label">DN List</span></div>
+          <div class="nav-link" data-tab="Delivery Address Confirmation" onclick="navClick(this)"><span class="nav-label">Delivery Address Confirmation</span></div>
+          <div class="nav-link" data-tab="Global IWT" onclick="navClick(this)"><span class="nav-label">Global IWT</span></div>
+          <div class="nav-link" data-tab="OP-AMS Confirm" onclick="navClick(this)"><span class="nav-label">OP-AMS Confirm</span></div>
+          <div class="nav-link" data-tab="Confirm Pre-DO" onclick="navClick(this)"><span class="nav-label">Confirm Pre-DO</span></div>
+          <div class="nav-link" data-tab="Packing List" onclick="navClick(this)"><span class="nav-label">Packing List</span></div>
+          <div class="nav-link" data-tab="Dispatch-WT" onclick="navClick(this)"><span class="nav-label">Dispatch-WT</span></div>
+          <div class="nav-link" data-tab="Dispatch-DO" onclick="navClick(this)"><span class="nav-label">Dispatch-DO</span></div>
+          <div class="nav-link" data-tab="CS-Document To Broker" onclick="navClick(this)"><span class="nav-label">CS-Document To Broker</span></div>
+          <div class="nav-link" data-tab="Custom Admission/Release" onclick="navClick(this)"><span class="nav-label">Custom Admission/Release</span></div>
+          <div class="nav-link" data-tab="Create Hold" onclick="navClick(this)"><span class="nav-label">Create Hold</span></div>
+          <div class="nav-link" data-tab="ABI Query" onclick="navClick(this)"><span class="nav-label">ABI Query</span></div>
+          <div class="nav-link" data-tab="New Import Job" onclick="navClick(this)"><span class="nav-label">New Import Job</span></div>
+          <div class="nav-link" data-tab="Import Confirm" data-page="import-confirm" onclick="navClick(this)"><span class="nav-label">Import Confirm</span></div>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" data-tip="xdoc Management" data-tab="xdoc Management" onclick="navClick(this)">
+          <i class="nav-icon fa fa-table"></i>
+          <span class="nav-label">xdoc Management</span>
+        </a>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" data-tip="Shipment List" data-tab="Shipment List" onclick="navClick(this)">
+          <i class="nav-icon fa fa-cloud"></i>
+          <span class="nav-label">Shipment List</span>
+        </a>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-link" onclick="toggleNav(this)">
+          <i class="nav-icon fa fa-folder-open"></i>
+          <span class="nav-label">Invoice</span>
+          <i class="nav-arrow fa fa-chevron-right"></i>
+        </div>
+        <div class="sub-nav">
+          <div class="nav-link" data-tab="Invoice Details" onclick="navClick(this)"><span class="nav-label">Invoice Details</span></div>
+          <div class="nav-link" onclick="toggleNav(this)"><span class="nav-label">Billing Setting</span><i class="nav-arrow fa fa-chevron-right" style="margin-left:auto"></i></div>
+          <div class="sub-nav sub-nav-3">
+            <div class="nav-link" data-tab="ImportConversion" onclick="navClick(this)"><span class="nav-label">ImportConversion</span></div>
+            <div class="nav-link" data-tab="Price Setting" onclick="navClick(this)"><span class="nav-label">Price Setting</span></div>
+            <div class="nav-link" data-tab="Auto Setting" onclick="navClick(this)"><span class="nav-label">Auto Setting</span></div>
+            <div class="nav-link" data-tab="WeekSetting" onclick="navClick(this)"><span class="nav-label">WeekSetting</span></div>
+            <div class="nav-link" data-tab="OriDestRate" onclick="navClick(this)"><span class="nav-label">OriDestRate</span></div>
+          </div>
+          <div class="nav-link" data-tab="LenovoRemark" onclick="navClick(this)"><span class="nav-label">LenovoRemark</span></div>
+          <div class="nav-link" onclick="toggleNav(this)"><span class="nav-label">Report</span><i class="nav-arrow fa fa-chevron-right" style="margin-left:auto"></i></div>
+          <div class="sub-nav sub-nav-3">
+            <div class="nav-link" data-tab="NCC_MSFT Report" onclick="navClick(this)"><span class="nav-label">NCC_MSFT Report</span></div>
+            <div class="nav-link" data-tab="MSFT Report" onclick="navClick(this)"><span class="nav-label">MSFT Report</span></div>
+          </div>
+          <div class="nav-link" data-tab="ChargeList" onclick="navClick(this)"><span class="nav-label">ChargeList</span></div>
+          <div class="nav-link" data-tab="Internal Settlement" onclick="navClick(this)"><span class="nav-label">Internal Settlement</span></div>
+          <div class="nav-link" data-tab="Charge Code Mapping" onclick="navClick(this)"><span class="nav-label">Charge Code Mapping</span></div>
+          <div class="nav-link" data-tab="Exception ShipmentLists" onclick="navClick(this)"><span class="nav-label">Exception ShipmentLists</span></div>
+          <div class="nav-link" data-tab="Charge Code" onclick="navClick(this)"><span class="nav-label">Charge Code</span></div>
+          <div class="nav-link" data-tab="BShipmentList" onclick="navClick(this)"><span class="nav-label">BShipmentList</span></div>
+          <div class="nav-link" data-tab="Invoice List" onclick="navClick(this)"><span class="nav-label">Invoice List</span></div>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" data-tip="214 Exception Mgmt" data-tab="214 Exception Management" onclick="navClick(this)">
+          <i class="nav-icon fa fa-book"></i>
+          <span class="nav-label">214 Exception Management</span>
+        </a>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" data-tip="Operation Log" data-tab="Operation Log" onclick="navClick(this)">
+          <i class="nav-icon fa fa-building"></i>
+          <span class="nav-label">Operation Log</span>
+        </a>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-link" onclick="toggleNav(this)">
+          <i class="nav-icon fa fa-reply-all"></i>
+          <span class="nav-label">Report</span>
+          <i class="nav-arrow fa fa-chevron-right"></i>
+        </div>
+        <div class="sub-nav">
+          <div class="nav-link" data-tab="ASUS Tracking Report" onclick="navClick(this)"><span class="nav-label">ASUS Tracking Report</span></div>
+          <div class="nav-link" data-tab="BillingCW Monitor" onclick="navClick(this)"><span class="nav-label">BillingCW Monitor</span></div>
+          <div class="nav-link" data-tab="EDI 214 Status Report-Air" onclick="navClick(this)"><span class="nav-label">EDI 214 Status Report-Air</span></div>
+          <div class="nav-link" data-tab="EDI 214 Status Report-Truck" onclick="navClick(this)"><span class="nav-label">EDI 214 Status Report-Truck</span></div>
+          <div class="nav-link" data-tab="GAP General Report" onclick="navClick(this)"><span class="nav-label">GAP General Report</span></div>
+          <div class="nav-link" data-tab="NCC_Tesla Billing Status" onclick="navClick(this)"><span class="nav-label">NCC_Tesla Billing Status</span></div>
+          <div class="nav-link" data-tab="Tesla Billing Status" onclick="navClick(this)"><span class="nav-label">Tesla Billing Status</span></div>
+          <div class="nav-link" data-tab="TMS Adoption Report" onclick="navClick(this)"><span class="nav-label">TMS Adoption Report</span></div>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-link" onclick="toggleNav(this)">
+          <i class="nav-icon fa fa-align-justify"></i>
+          <span class="nav-label">Air Event Management</span>
+          <i class="nav-arrow fa fa-chevron-right"></i>
+        </div>
+        <div class="sub-nav">
+          <div class="nav-link" data-tab="Air Event Management" onclick="navClick(this)"><span class="nav-label">Air Event Management</span></div>
+          <div class="nav-link" data-tab="Air Event Label Default" onclick="navClick(this)"><span class="nav-label">Air Event Label Default</span></div>
+          <div class="nav-link" data-tab="Air Event Log" onclick="navClick(this)"><span class="nav-label">Air Event Log</span></div>
+          <div class="nav-link" data-tab="Truck Milestone Management" onclick="navClick(this)"><span class="nav-label">Truck Milestone Management</span></div>
+          <div class="nav-link" data-tab="SHEIN AI Milestone" onclick="navClick(this)"><span class="nav-label">SHEIN AI Milestone</span></div>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-link" onclick="toggleNav(this)">
+          <i class="nav-icon fa fa-user"></i>
+          <span class="nav-label">System Management</span>
+          <i class="nav-arrow fa fa-chevron-right"></i>
+        </div>
+        <div class="sub-nav">
+          <div class="nav-link" data-tab="Charge Code Management" onclick="navClick(this)"><span class="nav-label">Charge Code Management</span></div>
+          <div class="nav-link" data-tab="bAccounts" onclick="navClick(this)"><span class="nav-label">bAccounts</span></div>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <div class="nav-link" onclick="toggleNav(this)">
+          <i class="nav-icon fa fa-cart-shopping"></i>
+          <span class="nav-label">E-Commerce</span>
+          <i class="nav-arrow fa fa-chevron-right"></i>
+        </div>
+        <div class="sub-nav">
+          <div class="nav-link" data-tab="Warehouse In" onclick="navClick(this)"><span class="nav-label">Warehouse In</span></div>
+          <div class="nav-link" data-tab="Segregation" onclick="navClick(this)"><span class="nav-label">Segregation</span></div>
+          <div class="nav-link" data-tab="Warehouse Out" onclick="navClick(this)"><span class="nav-label">Warehouse Out</span></div>
+          <div class="nav-link" data-tab="Consolidation" onclick="navClick(this)"><span class="nav-label">Consolidation</span></div>
+          <div class="nav-link" data-tab="Customs Exam" onclick="navClick(this)"><span class="nav-label">Customs Exam</span></div>
+          <div class="nav-link" data-tab="Exception Handling" onclick="navClick(this)"><span class="nav-label">Exception Handling</span></div>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" data-tip="Milestone Mgmt Center" data-tab="Milestone Management Center" onclick="navClick(this)">
+          <i class="nav-icon fa fa-address-card"></i>
+          <span class="nav-label">Milestone Management Center</span>
+        </a>
+      </div>
+
+      <div class="nav-item">
+        <a class="nav-link" data-tip="AI Booking" data-tab="AI Booking" onclick="navClick(this)">
+          <i class="nav-icon fa fa-robot"></i>
+          <span class="nav-label">AI Booking</span>
+        </a>
+      </div>
+
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="collapse-btn" onclick="toggleSidebar()">
+        <i class="collapse-icon fa fa-chevrons-left nav-icon"></i>
+        <span class="collapse-btn-label">Collapse Sidebar</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ══ MAIN ══ -->
+  <div id="main">
+
+    <!-- Tab bar -->
+    <div id="tabbar">
+      <div class="tabbar-left">
+        <button onclick="scrollTabs(-1)" title="Scroll left"><i class="fa fa-chevron-left"></i></button>
+        <button onclick="scrollTabs(1)" title="Scroll right"><i class="fa fa-chevron-right"></i></button>
+      </div>
+      <div class="tabs-scroll" id="tabsScroll"></div>
+      <div class="tabbar-right">
+        <div class="more-wrap">
+          <button onclick="toggleMore()">More <i class="fa fa-caret-down" style="font-size:10px;margin-left:2px"></i></button>
+          <div class="more-menu" id="moreMenu">
+            <a onclick="goActiveTab()">Go to Current Tab</a>
+            <div class="divider"></div>
+            <a onclick="closeAllTabs()">Close All Tabs</a>
+            <a onclick="closeOtherTabs()">Close Other Tabs</a>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="window.location='login.html'">
+          <i class="fa fa-right-from-bracket"></i> Log Out
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="content">
+
+      <!-- ── HOME PANEL ── -->
+      <div class="content-panel active" id="panel-home">
+        <div class="panel-scroll">
+          <div class="home-grid">
+
+            <div class="section-header">
+              <h2>Operations Overview</h2><div class="section-line"></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-icon" style="background:#EFF6FF;color:#2B7FFF"><i class="fa fa-ship"></i></div>
+              <div class="stat-card-value">147</div>
+              <div class="stat-card-label">Active Shipments</div>
+              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> 12 from yesterday</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-icon" style="background:#F0FDF4;color:#10B981"><i class="fa fa-circle-check"></i></div>
+              <div class="stat-card-value">34</div>
+              <div class="stat-card-label">Customs Cleared Today</div>
+              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> 8 ahead of schedule</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-icon" style="background:#FFF7ED;color:#F97316"><i class="fa fa-triangle-exclamation"></i></div>
+              <div class="stat-card-value">9</div>
+              <div class="stat-card-label">Pending 214 Exceptions</div>
+              <div class="stat-card-delta delta-down"><i class="fa fa-arrow-down" style="font-size:9px"></i> Needs attention</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-icon" style="background:#FDF4FF;color:#A855F7"><i class="fa fa-file-invoice-dollar"></i></div>
+              <div class="stat-card-value">$1.2M</div>
+              <div class="stat-card-label">Invoices This Week</div>
+              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> 4.2% vs last week</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-icon" style="background:#F0FDF4;color:#10B981"><i class="fa fa-plane-arrival"></i></div>
+              <div class="stat-card-value">23</div>
+              <div class="stat-card-label">Flights Arrived Today</div>
+              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> On time rate 91%</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-icon" style="background:#EFF6FF;color:#2B7FFF"><i class="fa fa-file-import"></i></div>
+              <div class="stat-card-value">58</div>
+              <div class="stat-card-label">Import Confirms Pending</div>
+              <div class="stat-card-delta delta-down"><i class="fa fa-arrow-down" style="font-size:9px"></i> 6 overdue</div>
+            </div>
+
+            <div class="section-header">
+              <h2>Quick Access</h2><div class="section-line"></div>
+            </div>
+
+            <a class="quick-card" onclick="openTabByName('DN List')">
+              <div class="quick-card-icon"><i class="fa fa-list-check"></i></div>
+              <div><div class="quick-card-label">DN List</div><div class="quick-card-sub">View delivery notes</div></div>
+            </a>
+
+            <a class="quick-card" onclick="openTabByName('Import Confirm','import-confirm')">
+              <div class="quick-card-icon"><i class="fa fa-file-import"></i></div>
+              <div><div class="quick-card-label">Import Confirm</div><div class="quick-card-sub">58 pending confirmations</div></div>
+            </a>
+
+            <a class="quick-card" onclick="openTabByName('Update ATD&amp;ATA','update-ata')">
+              <div class="quick-card-icon"><i class="fa fa-gauge-high"></i></div>
+              <div><div class="quick-card-label">Update ATD &amp; ATA</div><div class="quick-card-sub">Flight departure/arrival</div></div>
+            </a>
+
+            <a class="quick-card" onclick="openTabByName('Shipment List')">
+              <div class="quick-card-icon"><i class="fa fa-boxes-stacked"></i></div>
+              <div><div class="quick-card-label">Shipment List</div><div class="quick-card-sub">All active shipments</div></div>
+            </a>
+
+            <a class="quick-card" onclick="openTabByName('Invoice List')">
+              <div class="quick-card-icon"><i class="fa fa-file-invoice"></i></div>
+              <div><div class="quick-card-label">Invoice List</div><div class="quick-card-sub">Billing &amp; settlement</div></div>
+            </a>
+
+            <a class="quick-card" onclick="openTabByName('214 Exception Management')">
+              <div class="quick-card-icon" style="background:rgba(239,68,68,0.1);color:#EF4444"><i class="fa fa-bell"></i></div>
+              <div><div class="quick-card-label">214 Exception Mgmt</div><div class="quick-card-sub">9 items pending</div></div>
+            </a>
+
+            <a class="quick-card" onclick="openTabByName('Air Event Management')">
+              <div class="quick-card-icon"><i class="fa fa-plane"></i></div>
+              <div><div class="quick-card-label">Air Event Management</div><div class="quick-card-sub">Track air milestones</div></div>
+            </a>
+
+            <a class="quick-card" onclick="openTabByName('Operation Log')">
+              <div class="quick-card-icon"><i class="fa fa-clipboard-list"></i></div>
+              <div><div class="quick-card-label">Operation Log</div><div class="quick-card-sub">Audit &amp; history</div></div>
+            </a>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── IMPORT CONFIRM PANEL ── -->
+      <div class="content-panel" id="panel-import-confirm">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Import Confirm</div>
+            <div class="page-breadcrumb">US &rsaquo; Import Confirm &nbsp;|&nbsp; 58 records pending</div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline"><i class="fa fa-download"></i> Export</button>
+            <button class="btn btn-primary"><i class="fa fa-check-double"></i> Batch Confirm</button>
+          </div>
+        </div>
+        <div class="filter-bar">
+          <input class="filter-input wide" type="text" placeholder="HAWB / MAWB / Job No.">
+          <input class="filter-input" type="date">
+          <input class="filter-input" type="date">
+          <select class="filter-input">
+            <option value="">All Status</option>
+            <option>Pending</option>
+            <option>Confirmed</option>
+            <option>Overdue</option>
+            <option>On Hold</option>
+          </select>
+          <select class="filter-input">
+            <option value="">All Carriers</option>
+            <option>UA</option><option>AA</option><option>DL</option><option>CX</option><option>EK</option>
+          </select>
+          <div class="filter-sep"></div>
+          <button class="btn btn-primary"><i class="fa fa-magnifying-glass"></i> Search</button>
+          <button class="btn btn-outline">Reset</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" onclick="toggleAllCheck(this)"></th>
+                <th>Job No.</th>
+                <th>HAWB</th>
+                <th>MAWB</th>
+                <th>Origin</th>
+                <th>Dest.</th>
+                <th>Carrier</th>
+                <th>Flight</th>
+                <th>ATD</th>
+                <th>ATA</th>
+                <th>Pieces</th>
+                <th>Weight (kg)</th>
+                <th>Status</th>
+                <th>Customer</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="importTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── UPDATE ATD/ATA PANEL ── -->
+      <div class="content-panel" id="panel-update-ata">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Update ATD &amp; ATA</div>
+            <div class="page-breadcrumb">Update Actual Time of Departure &amp; Arrival for flights</div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline"><i class="fa fa-clock-rotate-left"></i> History</button>
+          </div>
+        </div>
+
+        <div class="filter-bar" style="border-bottom:1px solid var(--border);margin-bottom:0;">
+          <input class="filter-input wide" type="text" id="ataSearch" placeholder="Enter HAWB / Flight No. / MAWB" oninput="searchFlight()">
+          <button class="btn btn-primary" onclick="searchFlight()"><i class="fa fa-magnifying-glass"></i> Search</button>
+          <button class="btn btn-outline" onclick="clearSearch()">Clear</button>
+        </div>
+
+        <div id="ataSearchResult" style="display:none;" class="search-card">
+          <div class="search-card-row" id="ataResultFields"></div>
+        </div>
+
+        <div class="form-grid" id="ataFormGrid">
+          <div class="form-card">
+            <div class="form-card-title"><i class="fa fa-plane-departure" style="color:var(--accent);margin-right:6px"></i>Departure Info</div>
+            <div class="field">
+              <label>HAWB No.</label>
+              <input type="text" id="f_hawb" placeholder="e.g. SFO-2024-18834">
+            </div>
+            <div class="field">
+              <label>Flight No.</label>
+              <input type="text" id="f_flight" placeholder="e.g. UA857">
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Origin</label>
+                <input type="text" id="f_origin" placeholder="SFO">
+              </div>
+              <div class="field">
+                <label>Destination</label>
+                <input type="text" id="f_dest" placeholder="TPE">
+              </div>
+            </div>
+            <div class="field">
+              <label>ATD — Actual Time of Departure</label>
+              <input type="datetime-local" id="f_atd">
+            </div>
+          </div>
+
+          <div class="form-card">
+            <div class="form-card-title"><i class="fa fa-plane-arrival" style="color:var(--success);margin-right:6px"></i>Arrival Info</div>
+            <div class="field">
+              <label>MAWB No.</label>
+              <input type="text" id="f_mawb" placeholder="e.g. 016-12345678">
+            </div>
+            <div class="field">
+              <label>Carrier</label>
+              <select id="f_carrier">
+                <option value="">Select Carrier</option>
+                <option>United Airlines (UA)</option>
+                <option>American Airlines (AA)</option>
+                <option>Delta Airlines (DL)</option>
+                <option>Cathay Pacific (CX)</option>
+                <option>Emirates (EK)</option>
+                <option>Lufthansa (LH)</option>
+                <option>Singapore Airlines (SQ)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>ATA — Actual Time of Arrival</label>
+              <input type="datetime-local" id="f_ata">
+            </div>
+            <div class="field">
+              <label>Remarks</label>
+              <input type="text" id="f_remark" placeholder="Optional remarks">
+            </div>
+          </div>
+
+          <div class="form-card">
+            <div class="form-card-title"><i class="fa fa-box" style="color:var(--warning);margin-right:6px"></i>Cargo Details</div>
+            <div class="form-row">
+              <div class="field">
+                <label>Pieces</label>
+                <input type="number" id="f_pcs" placeholder="0" min="0">
+              </div>
+              <div class="field">
+                <label>Weight (kg)</label>
+                <input type="number" id="f_wt" placeholder="0.00" step="0.01">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field">
+                <label>Chargeable Wt (kg)</label>
+                <input type="number" id="f_cwt" placeholder="0.00" step="0.01">
+              </div>
+              <div class="field">
+                <label>Volume (CBM)</label>
+                <input type="number" id="f_vol" placeholder="0.00" step="0.01">
+              </div>
+            </div>
+            <div class="field">
+              <label>Commodity</label>
+              <input type="text" id="f_commodity" placeholder="e.g. Electronics / Auto Parts">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button class="btn btn-primary" onclick="submitAta()"><i class="fa fa-floppy-disk"></i> Save & Confirm</button>
+          <button class="btn btn-outline" onclick="resetAtaForm()"><i class="fa fa-rotate-left"></i> Reset</button>
+          <span id="ataSubmitMsg" style="align-self:center;font-size:12.5px;color:var(--success);display:none;">
+            <i class="fa fa-circle-check"></i> Record updated successfully
+          </span>
+        </div>
+      </div>
+
+    </div><!-- #content -->
+  </div><!-- #main -->
+</div><!-- #app -->
+
+<script>
+  // ── Sample data ──
+  const importData = [
+    { job:'XC-2024-08834', hawb:'SFO240701-001', mawb:'016-12345001', ori:'SFO', dst:'TPE', carrier:'UA', flight:'UA857', atd:'2024-07-01 22:10', ata:'2024-07-03 06:35', pcs:48, wt:823, status:'Confirmed', customer:'Apple Inc.' },
+    { job:'XC-2024-08835', hawb:'SFO240701-002', mawb:'016-12345002', ori:'LAX', dst:'PVG', carrier:'CX', flight:'CX888', atd:'2024-07-01 23:45', ata:'2024-07-03 14:20', pcs:12, wt:154, status:'Pending', customer:'Tesla Motors' },
+    { job:'XC-2024-08836', hawb:'SFO240702-001', mawb:'016-12345003', ori:'SFO', dst:'ICN', carrier:'AA', flight:'AA280', atd:'2024-07-02 08:30', ata:'', pcs:36, wt:612, status:'Pending', customer:'Microsoft' },
+    { job:'XC-2024-08837', hawb:'SFO240702-002', mawb:'016-12345004', ori:'SFO', dst:'NRT', carrier:'UA', flight:'UA837', atd:'2024-07-02 10:15', ata:'2024-07-03 18:40', pcs:24, wt:445, status:'Confirmed', customer:'Lenovo' },
+    { job:'XC-2024-08838', hawb:'SFO240702-003', mawb:'016-12345005', ori:'JFK', dst:'FRA', carrier:'LH', flight:'LH401', atd:'2024-07-02 16:00', ata:'', pcs:8, wt:96, status:'Overdue', customer:'ASUS' },
+    { job:'XC-2024-08839', hawb:'SFO240702-004', mawb:'016-12345006', ori:'SFO', dst:'SIN', carrier:'SQ', flight:'SQ032', atd:'2024-07-02 23:55', ata:'2024-07-04 12:00', pcs:60, wt:1200, status:'On Hold', customer:'Dell Technologies' },
+    { job:'XC-2024-08840', hawb:'SFO240703-001', mawb:'016-12345007', ori:'LAX', dst:'HKG', carrier:'CX', flight:'CX886', atd:'2024-07-03 09:00', ata:'', pcs:18, wt:320, status:'Pending', customer:'HP Inc.' },
+    { job:'XC-2024-08841', hawb:'SFO240703-002', mawb:'016-12345008', ori:'ORD', dst:'PEK', carrier:'AA', flight:'AA169', atd:'2024-07-03 11:30', ata:'2024-07-04 22:15', pcs:42, wt:788, status:'Confirmed', customer:'Motorola' },
+    { job:'XC-2024-08842', hawb:'SFO240703-003', mawb:'016-12345009', ori:'SFO', dst:'MNL', carrier:'UA', flight:'UA863', atd:'2024-07-03 14:20', ata:'', pcs:5, wt:62, status:'Pending', customer:'Cisco Systems' },
+    { job:'XC-2024-08843', hawb:'SFO240703-004', mawb:'016-12345010', ori:'MIA', dst:'AMS', carrier:'KL', flight:'KL641', atd:'2024-07-03 18:45', ata:'2024-07-04 10:30', pcs:30, wt:540, status:'Confirmed', customer:'SHEIN' },
+  ];
+
+  const statusBadge = {
+    'Confirmed': 'badge-green',
+    'Pending': 'badge-blue',
+    'Overdue': 'badge-red',
+    'On Hold': 'badge-orange',
+  };
+
+  function buildImportTable() {
+    const tbody = document.getElementById('importTableBody');
+    tbody.innerHTML = importData.map(r => `
+      <tr>
+        <td><input type="checkbox" class="row-check"></td>
+        <td><a onclick="event.preventDefault()">${r.job}</a></td>
+        <td>${r.hawb}</td>
+        <td>${r.mawb}</td>
+        <td>${r.ori}</td>
+        <td>${r.dst}</td>
+        <td>${r.carrier}</td>
+        <td>${r.flight}</td>
+        <td>${r.atd || '—'}</td>
+        <td>${r.ata || '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${r.pcs}</td>
+        <td>${r.wt.toLocaleString()}</td>
+        <td><span class="badge ${statusBadge[r.status] || 'badge-gray'}">${r.status}</span></td>
+        <td>${r.customer}</td>
+        <td>
+          <button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="confirmRow(this)">Confirm</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function toggleAllCheck(cb) {
+    document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+  }
+
+  function confirmRow(btn) {
+    const row = btn.closest('tr');
+    const statusCell = row.cells[12];
+    statusCell.innerHTML = '<span class="badge badge-green">Confirmed</span>';
+    btn.textContent = '✓';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+  }
+
+  // ── ATA form ──
+  const flightDB = {
+    'SFO240701-001': { hawb:'SFO240701-001', flight:'UA857', ori:'SFO', dst:'TPE', mawb:'016-12345001', carrier:'United Airlines (UA)', pcs:48, wt:823, cwt:823, commodity:'Electronics' },
+    'UA857': { hawb:'SFO240701-001', flight:'UA857', ori:'SFO', dst:'TPE', mawb:'016-12345001', carrier:'United Airlines (UA)', pcs:48, wt:823, cwt:823, commodity:'Electronics' },
+    'XC-2024-08835': { hawb:'SFO240701-002', flight:'CX888', ori:'LAX', dst:'PVG', mawb:'016-12345002', carrier:'Cathay Pacific (CX)', pcs:12, wt:154, cwt:200, commodity:'Auto Parts' },
+  };
+
+  function searchFlight() {
+    const q = document.getElementById('ataSearch').value.trim().toUpperCase();
+    const match = flightDB[q] || Object.values(flightDB).find(d =>
+      d.hawb.toUpperCase().includes(q) || d.flight.toUpperCase().includes(q) || d.mawb.includes(q)
+    );
+    if (match) {
+      document.getElementById('f_hawb').value = match.hawb;
+      document.getElementById('f_flight').value = match.flight;
+      document.getElementById('f_origin').value = match.ori;
+      document.getElementById('f_dest').value = match.dst;
+      document.getElementById('f_mawb').value = match.mawb;
+      document.getElementById('f_carrier').value = match.carrier;
+      document.getElementById('f_pcs').value = match.pcs;
+      document.getElementById('f_wt').value = match.wt;
+      document.getElementById('f_cwt').value = match.cwt;
+      document.getElementById('f_commodity').value = match.commodity;
+
+      const res = document.getElementById('ataSearchResult');
+      document.getElementById('ataResultFields').innerHTML = `
+        <div class="search-card-field"><span class="lbl">HAWB</span><span class="val">${match.hawb}</span></div>
+        <div class="search-card-field"><span class="lbl">Flight</span><span class="val">${match.flight}</span></div>
+        <div class="search-card-field"><span class="lbl">Route</span><span class="val">${match.ori} → ${match.dst}</span></div>
+        <div class="search-card-field"><span class="lbl">MAWB</span><span class="val">${match.mawb}</span></div>
+        <div class="search-card-field"><span class="lbl">Carrier</span><span class="val">${match.carrier}</span></div>
+        <div class="search-card-field"><span class="lbl">Pieces</span><span class="val">${match.pcs}</span></div>
+        <div class="search-card-field"><span class="lbl">Weight</span><span class="val">${match.wt} kg</span></div>
+      `;
+      res.style.display = 'block';
+    } else if (q) {
+      document.getElementById('ataSearchResult').style.display = 'none';
+    }
+  }
+
+  function clearSearch() {
+    document.getElementById('ataSearch').value = '';
+    document.getElementById('ataSearchResult').style.display = 'none';
+    resetAtaForm();
+  }
+
+  function submitAta() {
+    const hawb = document.getElementById('f_hawb').value.trim();
+    const atd = document.getElementById('f_atd').value;
+    const ata = document.getElementById('f_ata').value;
+    if (!hawb || (!atd && !ata)) {
+      alert('Please enter at least a HAWB number and one of ATD or ATA.');
+      return;
+    }
+    const msg = document.getElementById('ataSubmitMsg');
+    msg.style.display = 'inline-flex';
+    setTimeout(() => msg.style.display = 'none', 4000);
+  }
+
+  function resetAtaForm() {
+    ['f_hawb','f_flight','f_origin','f_dest','f_mawb','f_atd','f_ata','f_remark','f_pcs','f_wt','f_cwt','f_vol','f_commodity'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    document.getElementById('f_carrier').value = '';
+  }
+
+  // ── Tab state ──
+  let tabs = [{ id: 'home', label: 'HomePage', panelId: 'panel-home' }];
+  let activeTabId = 'home';
+  let tabCounter = 0;
+
+  function renderTabs() {
+    const scroll = document.getElementById('tabsScroll');
+    scroll.innerHTML = '';
+    tabs.forEach(t => {
+      const div = document.createElement('div');
+      div.className = 'tab' + (t.id === activeTabId ? ' active' : '');
+      div.dataset.id = t.id;
+      div.innerHTML = `<span>${t.label}</span>${t.id !== 'home' ? `<button class="tab-close" onclick="closeTab(event,'${t.id}')"><i class="fa fa-xmark"></i></button>` : ''}`;
+      div.addEventListener('click', e => { if (!e.target.closest('.tab-close')) activateTab(t.id); });
+      scroll.appendChild(div);
+    });
+  }
+
+  function activateTab(id) {
+    activeTabId = id;
+    document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+    const t = tabs.find(x => x.id === id);
+    if (t) {
+      const panel = document.getElementById(t.panelId);
+      if (panel) panel.classList.add('active');
+    }
+    renderTabs();
+  }
+
+  function navClick(el) {
+    const label = el.dataset.tab;
+    const page = el.dataset.page || null;
+    openTabByName(label, page);
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function openTabByName(label, page) {
+    const existing = tabs.find(t => t.label === label);
+    if (existing) { activateTab(existing.id); return; }
+
+    tabCounter++;
+    const id = 'tab-' + tabCounter;
+    let panelId;
+
+    if (page === 'import-confirm') {
+      panelId = 'panel-import-confirm';
+    } else if (page === 'update-ata') {
+      panelId = 'panel-update-ata';
+    } else {
+      panelId = 'panel-dyn-' + tabCounter;
+      const panel = document.createElement('div');
+      panel.className = 'content-panel';
+      panel.id = panelId;
+      panel.innerHTML = `<div class="placeholder-panel"><i class="fa fa-compass-drafting"></i><p class="ph-title">${label}</p><p class="ph-sub">This module is available in the full Apex Workflow environment.</p></div>`;
+      document.getElementById('content').appendChild(panel);
+    }
+
+    tabs.push({ id, label, panelId });
+    activateTab(id);
+  }
+
+  function closeTab(e, id) {
+    e.stopPropagation();
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    const t = tabs[idx];
+    if (t.panelId && !['panel-import-confirm','panel-update-ata'].includes(t.panelId)) {
+      const panel = document.getElementById(t.panelId);
+      if (panel) panel.remove();
+    }
+    tabs.splice(idx, 1);
+    if (activeTabId === id) {
+      activateTab(tabs[Math.min(idx, tabs.length - 1)].id);
+    } else { renderTabs(); }
+  }
+
+  function closeAllTabs() {
+    tabs.filter(t => t.id !== 'home').forEach(t => {
+      if (t.panelId && !['panel-import-confirm','panel-update-ata'].includes(t.panelId)) {
+        const p = document.getElementById(t.panelId); if (p) p.remove();
+      }
+    });
+    tabs = tabs.filter(t => t.id === 'home');
+    activateTab('home');
+    toggleMore();
+  }
+
+  function closeOtherTabs() {
+    tabs.filter(t => t.id !== 'home' && t.id !== activeTabId).forEach(t => {
+      if (t.panelId && !['panel-import-confirm','panel-update-ata'].includes(t.panelId)) {
+        const p = document.getElementById(t.panelId); if (p) p.remove();
+      }
+    });
+    tabs = tabs.filter(t => t.id === 'home' || t.id === activeTabId);
+    renderTabs();
+    toggleMore();
+  }
+
+  function goActiveTab() {
+    const el = document.querySelector(`.tab[data-id="${activeTabId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+    toggleMore();
+  }
+
+  function scrollTabs(dir) {
+    document.getElementById('tabsScroll').scrollBy({ left: dir * 120, behavior: 'smooth' });
+  }
+
+  // ── Sidebar ──
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+
+  function toggleNav(el) {
+    const sub = el.nextElementSibling;
+    if (!sub || !sub.classList.contains('sub-nav')) return;
+    const arrow = el.querySelector('.nav-arrow');
+    const isOpen = sub.classList.contains('open');
+    sub.classList.toggle('open', !isOpen);
+    if (arrow) arrow.classList.toggle('open', !isOpen);
+  }
+
+  // ── Dropdowns ──
+  document.getElementById('userToggle').addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('userDropdown').classList.toggle('open');
+  });
+  function toggleMore() {
+    document.getElementById('moreMenu').classList.toggle('open');
+  }
+  document.addEventListener('click', () => {
+    document.getElementById('userDropdown').classList.remove('open');
+    document.getElementById('moreMenu').classList.remove('open');
+  });
+  document.getElementById('moreMenu').addEventListener('click', e => e.stopPropagation());
+
+  // ── Init ──
+  buildImportTable();
+  renderTabs();
+</script>
+</body>
+</html>
