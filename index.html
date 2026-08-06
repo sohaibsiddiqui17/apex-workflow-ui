@@ -347,6 +347,32 @@
     .badge-gray { background: #F1F5F9; color: #475569; }
     .badge-purple { background: #F3E8FF; color: #6b21a8; }
 
+    /* ── IMPORT CONFIRM INNER TABS ── */
+    .ic-tabs-bar {
+      display: flex; align-items: stretch; background: var(--bg-white);
+      border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 0 16px; gap: 0;
+    }
+    .ic-tab {
+      padding: 10px 18px; font-size: 12.5px; font-weight: 500;
+      color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color 0.12s, border-color 0.12s; white-space: nowrap; user-select: none;
+    }
+    .ic-tab:hover { color: var(--text-body); }
+    .ic-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .ic-pane { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .ic-pane.active { display: flex; }
+
+    /* ── TOOLBAR ── */
+    .ic-toolbar {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 10px 16px; background: var(--bg-white);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .btn-warn { background: #FFFBEB; color: #92400e; border-color: #FCD34D; }
+    .btn-warn:hover { background: #FEF3C7; }
+    .btn-sm { padding: 5px 11px; font-size: 11.5px; }
+    .ic-toolbar .btn-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+
     /* ── UPDATE ATD/ATA FORM ── */
     .form-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -724,59 +750,152 @@
 
       <!-- ── IMPORT CONFIRM PANEL ── -->
       <div class="content-panel" id="panel-import-confirm">
-        <div class="page-header">
-          <div>
-            <div class="page-title">Import Confirm</div>
-            <div class="page-breadcrumb">US &rsaquo; Import Confirm &nbsp;|&nbsp; 58 records pending</div>
+
+        <!-- Inner tab bar -->
+        <div class="ic-tabs-bar">
+          <div class="ic-tab active" onclick="switchIcTab(this,'ic-pane-pending')">Import Confirm Pending</div>
+          <div class="ic-tab" onclick="switchIcTab(this,'ic-pane-list')">Import Confirm List</div>
+          <div class="ic-tab" onclick="switchIcTab(this,'ic-pane-abi')">ABI Query</div>
+        </div>
+
+        <!-- ── PANE 1: Pending ── -->
+        <div class="ic-pane active" id="ic-pane-pending">
+          <!-- Toolbar -->
+          <div class="ic-toolbar">
+            <button class="btn btn-warn btn-sm" onclick="icClearSearch()"><i class="fa fa-xmark"></i> Clear All Search</button>
+            <div class="btn-sep"></div>
+            <button class="btn btn-primary btn-sm"><i class="fa fa-arrow-right-to-bracket"></i> Create Job to SC</button>
+            <button class="btn btn-success btn-sm" onclick="icBatchConfirm()"><i class="fa fa-check"></i> Confirm</button>
+            <button class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> New Import Job</button>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-link"></i> Account Mapping</button>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-download"></i> Get SC Job</button>
+            <button class="btn btn-danger btn-sm"><i class="fa fa-trash"></i> Delete SC Job</button>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-pen-to-square"></i> Batch Update</button>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-magnifying-glass"></i> ABI Query</button>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-tag"></i> Update Tags</button>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-tags"></i> Maintain Tags</button>
           </div>
-          <div class="page-actions">
-            <button class="btn btn-outline"><i class="fa fa-download"></i> Export</button>
-            <button class="btn btn-primary"><i class="fa fa-check-double"></i> Batch Confirm</button>
+          <!-- Table -->
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" onclick="toggleAllCheck(this,'ic-check-pending')"></th>
+                  <th>Status</th>
+                  <th>ABI Query Status</th>
+                  <th>ABI Query Match</th>
+                  <th>Tags</th>
+                  <th>ULD #</th>
+                  <th>HAWB Customer</th>
+                  <th>M #</th>
+                  <th>H #</th>
+                  <th>ETA</th>
+                  <th>POL</th>
+                  <th>POD</th>
+                  <th>Airline</th>
+                  <th>Firm Code</th>
+                  <th>Flight No</th>
+                  <th>Dest Handling Office</th>
+                  <th>Dest Gateway Office</th>
+                  <th>Address</th>
+                  <th>Last Free Date</th>
+                  <th>WT</th>
+                  <th>SC Job Status</th>
+                  <th>OP Remarks</th>
+                  <th>SC JOB No</th>
+                  <th>Pre-Alert Date</th>
+                  <th>Dest CS</th>
+                  <th>IsOvsAgent</th>
+                  <th>Query Send Date</th>
+                  <th>Query Update Date</th>
+                  <th>Operator</th>
+                </tr>
+              </thead>
+              <tbody id="icPendingBody"></tbody>
+            </table>
           </div>
         </div>
-        <div class="filter-bar">
-          <input class="filter-input wide" type="text" placeholder="HAWB / MAWB / Job No.">
-          <input class="filter-input" type="date">
-          <input class="filter-input" type="date">
-          <select class="filter-input">
-            <option value="">All Status</option>
-            <option>Pending</option>
-            <option>Confirmed</option>
-            <option>Overdue</option>
-            <option>On Hold</option>
-          </select>
-          <select class="filter-input">
-            <option value="">All Carriers</option>
-            <option>UA</option><option>AA</option><option>DL</option><option>CX</option><option>EK</option>
-          </select>
-          <div class="filter-sep"></div>
-          <button class="btn btn-primary"><i class="fa fa-magnifying-glass"></i> Search</button>
-          <button class="btn btn-outline">Reset</button>
+
+        <!-- ── PANE 2: List ── -->
+        <div class="ic-pane" id="ic-pane-list">
+          <div class="ic-toolbar">
+            <button class="btn btn-warn btn-sm" onclick="icClearSearch()"><i class="fa fa-xmark"></i> Clear All Search</button>
+            <div class="btn-sep"></div>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-download"></i> Export</button>
+            <button class="btn btn-primary btn-sm"><i class="fa fa-magnifying-glass"></i> Search</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" onclick="toggleAllCheck(this,'ic-check-list')"></th>
+                  <th>Status</th>
+                  <th>ABI Query Status</th>
+                  <th>ABI Query Match</th>
+                  <th>Tags</th>
+                  <th>ULD #</th>
+                  <th>HAWB Customer</th>
+                  <th>M #</th>
+                  <th>H #</th>
+                  <th>ETA</th>
+                  <th>POL</th>
+                  <th>POD</th>
+                  <th>Airline</th>
+                  <th>Firm Code</th>
+                  <th>Flight No</th>
+                  <th>Dest Handling Office</th>
+                  <th>Dest Gateway Office</th>
+                  <th>Address</th>
+                  <th>Last Free Date</th>
+                  <th>WT</th>
+                  <th>SC Job Status</th>
+                  <th>OP Remarks</th>
+                  <th>SC JOB No</th>
+                  <th>Pre-Alert Date</th>
+                  <th>Dest CS</th>
+                  <th>IsOvsAgent</th>
+                  <th>Query Send Date</th>
+                  <th>Query Update Date</th>
+                  <th>Operator</th>
+                </tr>
+              </thead>
+              <tbody id="icListBody"></tbody>
+            </table>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th><input type="checkbox" onclick="toggleAllCheck(this)"></th>
-                <th>Job No.</th>
-                <th>HAWB</th>
-                <th>MAWB</th>
-                <th>Origin</th>
-                <th>Dest.</th>
-                <th>Carrier</th>
-                <th>Flight</th>
-                <th>ATD</th>
-                <th>ATA</th>
-                <th>Pieces</th>
-                <th>Weight (kg)</th>
-                <th>Status</th>
-                <th>Customer</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="importTableBody"></tbody>
-          </table>
+
+        <!-- ── PANE 3: ABI Query ── -->
+        <div class="ic-pane" id="ic-pane-abi">
+          <div class="ic-toolbar">
+            <button class="btn btn-warn btn-sm" onclick="icClearSearch()"><i class="fa fa-xmark"></i> Clear All Search</button>
+            <div class="btn-sep"></div>
+            <button class="btn btn-primary btn-sm"><i class="fa fa-magnifying-glass"></i> ABI Query</button>
+            <button class="btn btn-outline btn-sm"><i class="fa fa-download"></i> Export</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox"></th>
+                  <th>H #</th>
+                  <th>M #</th>
+                  <th>HAWB Customer</th>
+                  <th>POL</th>
+                  <th>POD</th>
+                  <th>ETA</th>
+                  <th>Flight No</th>
+                  <th>ABI Query Status</th>
+                  <th>ABI Query Match</th>
+                  <th>Query Send Date</th>
+                  <th>Query Update Date</th>
+                  <th>Operator</th>
+                </tr>
+              </thead>
+              <tbody id="icAbiBody"></tbody>
+            </table>
+          </div>
         </div>
+
       </div>
 
       <!-- ── UPDATE ATD/ATA PANEL ── -->
@@ -900,62 +1019,113 @@
 </div><!-- #app -->
 
 <script>
-  // ── Sample data ──
-  const importData = [
-    { job:'XC-2024-08834', hawb:'SFO240701-001', mawb:'016-12345001', ori:'SFO', dst:'TPE', carrier:'UA', flight:'UA857', atd:'2024-07-01 22:10', ata:'2024-07-03 06:35', pcs:48, wt:823, status:'Confirmed', customer:'Apple Inc.' },
-    { job:'XC-2024-08835', hawb:'SFO240701-002', mawb:'016-12345002', ori:'LAX', dst:'PVG', carrier:'CX', flight:'CX888', atd:'2024-07-01 23:45', ata:'2024-07-03 14:20', pcs:12, wt:154, status:'Pending', customer:'Tesla Motors' },
-    { job:'XC-2024-08836', hawb:'SFO240702-001', mawb:'016-12345003', ori:'SFO', dst:'ICN', carrier:'AA', flight:'AA280', atd:'2024-07-02 08:30', ata:'', pcs:36, wt:612, status:'Pending', customer:'Microsoft' },
-    { job:'XC-2024-08837', hawb:'SFO240702-002', mawb:'016-12345004', ori:'SFO', dst:'NRT', carrier:'UA', flight:'UA837', atd:'2024-07-02 10:15', ata:'2024-07-03 18:40', pcs:24, wt:445, status:'Confirmed', customer:'Lenovo' },
-    { job:'XC-2024-08838', hawb:'SFO240702-003', mawb:'016-12345005', ori:'JFK', dst:'FRA', carrier:'LH', flight:'LH401', atd:'2024-07-02 16:00', ata:'', pcs:8, wt:96, status:'Overdue', customer:'ASUS' },
-    { job:'XC-2024-08839', hawb:'SFO240702-004', mawb:'016-12345006', ori:'SFO', dst:'SIN', carrier:'SQ', flight:'SQ032', atd:'2024-07-02 23:55', ata:'2024-07-04 12:00', pcs:60, wt:1200, status:'On Hold', customer:'Dell Technologies' },
-    { job:'XC-2024-08840', hawb:'SFO240703-001', mawb:'016-12345007', ori:'LAX', dst:'HKG', carrier:'CX', flight:'CX886', atd:'2024-07-03 09:00', ata:'', pcs:18, wt:320, status:'Pending', customer:'HP Inc.' },
-    { job:'XC-2024-08841', hawb:'SFO240703-002', mawb:'016-12345008', ori:'ORD', dst:'PEK', carrier:'AA', flight:'AA169', atd:'2024-07-03 11:30', ata:'2024-07-04 22:15', pcs:42, wt:788, status:'Confirmed', customer:'Motorola' },
-    { job:'XC-2024-08842', hawb:'SFO240703-003', mawb:'016-12345009', ori:'SFO', dst:'MNL', carrier:'UA', flight:'UA863', atd:'2024-07-03 14:20', ata:'', pcs:5, wt:62, status:'Pending', customer:'Cisco Systems' },
-    { job:'XC-2024-08843', hawb:'SFO240703-004', mawb:'016-12345010', ori:'MIA', dst:'AMS', carrier:'KL', flight:'KL641', atd:'2024-07-03 18:45', ata:'2024-07-04 10:30', pcs:30, wt:540, status:'Confirmed', customer:'SHEIN' },
+  // ── Import Confirm data (from importConfirm.html DOM) ──
+  const icPendingData = [
+    { status:'New',           abiStatus:'Yes',  abiMatch:'Yes',         tags:'',    uld:'WBU1',  customer:'FORTINET INC.',        mno:'BR0028', hno:'HANQAN000705',   eta:'2026-07-31 20:35', pol:'TPE', pod:'SFO', airline:'BR', firm:'',   flight:'BR016',  destHO:'APEX-LAX, APEX-SFO', destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-07-31 13:40', wt:0,    scStatus:'',    opRem:'1F SENT,PENDING ISC', scJob:'',             preAlert:'2026-08-01 07:20', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-07-31 09:26', qUpdate:'2026-07-30 10:15', operator:'ASIF.HASAN-SFO' },
+    { status:'New',           abiStatus:'Yes',  abiMatch:'Not Existing', tags:'',    uld:'',      customer:'Quanta Group',         mno:'BR0008', hno:'HNAE26070469',   eta:'2026-08-02 12:00', pol:'CKG', pod:'SFO', airline:'CI', firm:'CI', flight:'CI5346', destHO:'APEX-LAX',             destGW:'APEX-LAX', addr:'2805 W EL SEGUNDO BLVD, HAWTHORNE, CA 90250', lfd:'2026-07-31 19:00', wt:0,    scStatus:'',    opRem:'',                    scJob:'AECKG2600202',  preAlert:'2026-08-02 12:00', destCs:'TASHIK.AHMED',   ovsAgent:'NO', qSend:'2026-07-31 09:41', qUpdate:'2026-07-31 05:23', operator:'TASHIK.AHMED' },
+    { status:'In Processing', abiStatus:'No',   abiMatch:'Not Existing', tags:'',    uld:'WBM6',  customer:'ASUS GROUP',           mno:'BR016',  hno:'AEBKK2601759',   eta:'2026-08-02 21:30', pol:'BKK', pod:'LAX', airline:'BR', firm:'',   flight:'WBM6',   destHO:'APEX-LAX',             destGW:'APEX-LAX', addr:'2805 W EL SEGUNDO BLVD, HAWTHORNE, CA 90250', lfd:'2026-07-31 09:41', wt:0,    scStatus:'',    opRem:'1F SENT,ISC SS',      scJob:'',             preAlert:'2026-08-02 21:30', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-07-31 05:23', qUpdate:'2026-07-30 21:05', operator:'KARINA.TORRES' },
+    { status:'New',           abiStatus:'No',   abiMatch:'Not Existing', tags:'',    uld:'',      customer:'ALO LLC, On AG',       mno:'O282',   hno:'VNAE20261908',   eta:'2026-08-01 06:50', pol:'SGN', pod:'MIA', airline:'UA', firm:'CI', flight:'UA0852', destHO:'APEX-MIA',             destGW:'APEX-MIA', addr:'1350 NW 129TH AVE, SUITE 400',                lfd:'2026-08-01 06:50', wt:0,    scStatus:'',    opRem:'BILL NOT ON FILE',    scJob:'',             preAlert:'2026-08-01 06:50', destCs:'LESLY.MARTINEZ', ovsAgent:'NO', qSend:'2026-07-31 04:30', qUpdate:'2026-07-31 05:10', operator:'LESLY.MARTINEZ' },
+    { status:'New',           abiStatus:'Yes',  abiMatch:'Yes',         tags:'',    uld:'',      customer:'ACER AMERICA CORP',    mno:'CI5382', hno:'PVGAE2607100',   eta:'2026-07-31 17:30', pol:'PVG', pod:'SFO', airline:'CZ', firm:'CI', flight:'CZ2509', destHO:'APEX-SFO',             destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-07-31 04:56', wt:0,    scStatus:'',    opRem:'',                    scJob:'PVGAE2607100',  preAlert:'2026-07-31 17:30', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-07-31 10:00', qUpdate:'2026-07-31 05:30', operator:'KARINA.TORRES' },
+    { status:'New',           abiStatus:'Yes',  abiMatch:'Existing',    tags:'',    uld:'',      customer:'Quanta Group',         mno:'CI5346', hno:'CKGAE2607111',   eta:'2026-08-02 18:00', pol:'CKG', pod:'SFO', airline:'CI', firm:'CI', flight:'CI5346', destHO:'APEX-LAX, APEX-SFO',   destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-07-31 04:56', wt:0,    scStatus:'',    opRem:'',                    scJob:'',             preAlert:'2026-08-02 18:00', destCs:'TASHIK.AHMED',   ovsAgent:'YES',qSend:'2026-07-31 07:00', qUpdate:'2026-07-31 02:45', operator:'TASHIK.AHMED' },
+    { status:'New',           abiStatus:'No',   abiMatch:'Not Existing', tags:'',    uld:'',      customer:'FORTINET INC.',        mno:'BR0028', hno:'PVGAE2607103',   eta:'2026-07-31 07:00', pol:'PVG', pod:'SFO', airline:'CZ', firm:'',   flight:'CZ2509', destHO:'APEX-SFO',             destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-08-02 12:00', wt:0,    scStatus:'',    opRem:'',                    scJob:'PVGAE2607103',  preAlert:'2026-07-31 17:30', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-08-01 07:20', qUpdate:'2026-07-31 09:26', operator:'ASIF.HASAN-SFO' },
+    { status:'In Processing', abiStatus:'Yes',  abiMatch:'Yes',         tags:'',    uld:'BR0028',customer:'ASUS GROUP',           mno:'BR016',  hno:'AECKG2607111',   eta:'2026-08-02 18:00', pol:'CKG', pod:'LAX', airline:'BR', firm:'CI', flight:'BR016',  destHO:'APEX-LAX',             destGW:'APEX-LAX', addr:'2805 W EL SEGUNDO BLVD, HAWTHORNE, CA 90250', lfd:'2026-07-31 19:00', wt:0,    scStatus:'',    opRem:'1F SENT,ISC SS',      scJob:'CKGAE2607112',  preAlert:'2026-08-02 18:00', destCs:'TASHIK.AHMED',   ovsAgent:'NO', qSend:'2026-07-31 09:41', qUpdate:'2026-07-31 05:23', operator:'TASHIK.AHMED' },
   ];
 
-  const statusBadge = {
-    'Confirmed': 'badge-green',
-    'Pending': 'badge-blue',
-    'Overdue': 'badge-red',
-    'On Hold': 'badge-orange',
+  const icListData = [
+    ...icPendingData,
+    { status:'New', abiStatus:'Yes', abiMatch:'Yes', tags:'', uld:'', customer:'Apple Inc.', mno:'UA857', hno:'SFOUS2607001', eta:'2026-08-03 06:35', pol:'TPE', pod:'SFO', airline:'UA', firm:'', flight:'UA857', destHO:'APEX-SFO', destGW:'APEX-SFO', addr:'1 Infinite Loop, Cupertino CA', lfd:'2026-08-03 06:35', wt:823, scStatus:'Confirmed', opRem:'', scJob:'SFOUS2607001', preAlert:'2026-08-02 22:10', destCs:'ASIF.HASAN', ovsAgent:'NO', qSend:'2026-07-31 22:10', qUpdate:'2026-08-01 06:35', operator:'ASIF.HASAN-SFO' },
+    { status:'In Processing', abiStatus:'Yes', abiMatch:'Existing', tags:'', uld:'', customer:'Tesla Motors', mno:'CX888', hno:'PVGUS2607002', eta:'2026-08-03 14:20', pol:'PVG', pod:'LAX', airline:'CX', firm:'CI', flight:'CX888', destHO:'APEX-LAX', destGW:'APEX-LAX', addr:'3500 Deer Creek Rd, Palo Alto CA', lfd:'2026-08-03 14:20', wt:154, scStatus:'Partial', opRem:'PENDING ISC', scJob:'', preAlert:'2026-08-03 14:20', destCs:'KARINA.TORRES', ovsAgent:'NO', qSend:'2026-07-31 23:45', qUpdate:'2026-08-01 14:20', operator:'KARINA.TORRES' },
+  ];
+
+  const icAbiData = icPendingData.map(r => ({
+    hno: r.hno, mno: r.mno, customer: r.customer, pol: r.pol, pod: r.pod,
+    eta: r.eta, flight: r.flight, abiStatus: r.abiStatus, abiMatch: r.abiMatch,
+    qSend: r.qSend, qUpdate: r.qUpdate, operator: r.operator
+  }));
+
+  const statusBadgeMap = {
+    'New':           'badge-blue',
+    'In Processing': 'badge-orange',
+    'Confirmed':     'badge-green',
+    'Partial':       'badge-purple',
+  };
+  const abiBadgeMap = {
+    'Yes':         'badge-green',
+    'No':          'badge-gray',
+    'Existing':    'badge-green',
+    'Not Existing':'badge-red',
   };
 
-  function buildImportTable() {
-    const tbody = document.getElementById('importTableBody');
-    tbody.innerHTML = importData.map(r => `
-      <tr>
-        <td><input type="checkbox" class="row-check"></td>
-        <td><a onclick="event.preventDefault()">${r.job}</a></td>
-        <td>${r.hawb}</td>
-        <td>${r.mawb}</td>
-        <td>${r.ori}</td>
-        <td>${r.dst}</td>
-        <td>${r.carrier}</td>
-        <td>${r.flight}</td>
-        <td>${r.atd || '—'}</td>
-        <td>${r.ata || '<span style="color:var(--text-muted)">—</span>'}</td>
-        <td>${r.pcs}</td>
-        <td>${r.wt.toLocaleString()}</td>
-        <td><span class="badge ${statusBadge[r.status] || 'badge-gray'}">${r.status}</span></td>
-        <td>${r.customer}</td>
-        <td>
-          <button class="btn btn-outline" style="padding:4px 8px;font-size:11px" onclick="confirmRow(this)">Confirm</button>
-        </td>
-      </tr>`).join('');
+  function icRow(r) {
+    return `<tr>
+      <td><input type="checkbox" class="row-check"></td>
+      <td><span class="badge ${statusBadgeMap[r.status]||'badge-gray'}">${r.status}</span></td>
+      <td><span class="badge ${abiBadgeMap[r.abiStatus]||'badge-gray'}">${r.abiStatus}</span></td>
+      <td><span class="badge ${abiBadgeMap[r.abiMatch]||'badge-gray'}">${r.abiMatch}</span></td>
+      <td>${r.tags||'—'}</td>
+      <td>${r.uld||'—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.customer}</td>
+      <td><a onclick="event.preventDefault()">${r.mno}</a></td>
+      <td><a onclick="event.preventDefault()">${r.hno}</a></td>
+      <td>${r.eta}</td>
+      <td>${r.pol}</td>
+      <td>${r.pod}</td>
+      <td>${r.airline}</td>
+      <td>${r.firm||'—'}</td>
+      <td>${r.flight}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${r.destHO}</td>
+      <td>${r.destGW}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.addr}</td>
+      <td>${r.lfd}</td>
+      <td>${r.wt||'—'}</td>
+      <td>${r.scStatus||'—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.opRem||'—'}</td>
+      <td>${r.scJob||'—'}</td>
+      <td>${r.preAlert}</td>
+      <td>${r.destCs}</td>
+      <td>${r.ovsAgent}</td>
+      <td>${r.qSend}</td>
+      <td>${r.qUpdate}</td>
+      <td>${r.operator}</td>
+    </tr>`;
   }
 
-  function toggleAllCheck(cb) {
-    document.querySelectorAll('.row-check').forEach(c => c.checked = cb.checked);
+  function buildIcTables() {
+    document.getElementById('icPendingBody').innerHTML = icPendingData.map(icRow).join('');
+    document.getElementById('icListBody').innerHTML   = icListData.map(icRow).join('');
+    document.getElementById('icAbiBody').innerHTML    = icAbiData.map(r => `<tr>
+      <td><input type="checkbox"></td>
+      <td><a onclick="event.preventDefault()">${r.hno}</a></td>
+      <td><a onclick="event.preventDefault()">${r.mno}</a></td>
+      <td>${r.customer}</td>
+      <td>${r.pol}</td><td>${r.pod}</td><td>${r.eta}</td><td>${r.flight}</td>
+      <td><span class="badge ${abiBadgeMap[r.abiStatus]||'badge-gray'}">${r.abiStatus}</span></td>
+      <td><span class="badge ${abiBadgeMap[r.abiMatch]||'badge-gray'}">${r.abiMatch}</span></td>
+      <td>${r.qSend}</td><td>${r.qUpdate}</td><td>${r.operator}</td>
+    </tr>`).join('');
   }
 
-  function confirmRow(btn) {
-    const row = btn.closest('tr');
-    const statusCell = row.cells[12];
-    statusCell.innerHTML = '<span class="badge badge-green">Confirmed</span>';
-    btn.textContent = '✓';
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
+  function switchIcTab(el, paneId) {
+    document.querySelectorAll('.ic-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.ic-pane').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById(paneId).classList.add('active');
+  }
+
+  function icBatchConfirm() {
+    document.querySelectorAll('#icPendingBody .row-check:checked').forEach(cb => {
+      const row = cb.closest('tr');
+      row.cells[1].innerHTML = '<span class="badge badge-green">Confirmed</span>';
+    });
+  }
+
+  function icClearSearch() {
+    document.querySelectorAll('#panel-import-confirm input[type="text"], #panel-import-confirm select').forEach(el => el.value = '');
+  }
+
+  function toggleAllCheck(cb, cls) {
+    const scope = cls ? document.querySelectorAll('.' + cls) : document.querySelectorAll('.row-check');
+    scope.forEach(c => c.checked = cb.checked);
   }
 
   // ── ATA form ──
@@ -1163,7 +1333,7 @@
   document.getElementById('moreMenu').addEventListener('click', e => e.stopPropagation());
 
   // ── Init ──
-  buildImportTable();
+  buildIcTables();
   renderTabs();
 </script>
 </body>
