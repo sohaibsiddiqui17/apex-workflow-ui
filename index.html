@@ -3,1338 +3,1398 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apex Workflow — XC Import</title>
+  <title>APEX Workflow UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --sidebar-w: 248px;
-      --sidebar-collapsed-w: 60px;
-      --topbar-h: 44px;
-      --bg-sidebar: #0D1B2A;
-      --bg-sidebar-hover: #1A2D42;
-      --bg-sidebar-active: #163A5F;
+      --sidebar-bg: #0D1B2A;
+      --sidebar-w: 260px;
+      --sidebar-collapsed: 64px;
       --accent: #2B7FFF;
-      --accent-dim: rgba(43,127,255,0.15);
-      --accent-glow: rgba(43,127,255,0.35);
-      --bg-main: #F0F4F8;
-      --bg-white: #FFFFFF;
-      --text-sidebar: #8FA8C0;
-      --text-sidebar-active: #FFFFFF;
-      --text-body: #1E293B;
-      --text-muted: #64748B;
-      --border: #E2E8F0;
-      --danger: #EF4444;
-      --success: #10B981;
-      --warning: #F97316;
-      --sidebar-transition: 0.22s cubic-bezier(0.4,0,0.2,1);
-      --font: 'Inter', system-ui, sans-serif;
+      --main-bg: #F0F4F8;
+      --tab-h: 44px;
+      --text: #1a2533;
+      --border: #dde3ec;
+      --hover: rgba(43,127,255,.08);
+      --row-h: 36px;
+      --filter-h: 38px;
     }
+    html, body { height: 100%; font-family: 'Inter', sans-serif; font-size: 13px; color: var(--text); background: var(--main-bg); overflow: hidden; }
 
-    html, body { height: 100%; overflow: hidden; background: var(--bg-main); font-family: var(--font); color: var(--text-body); font-size: 13px; }
+    /* ======= LAYOUT ======= */
     #app { display: flex; height: 100vh; }
 
-    /* ── SIDEBAR ── */
+    /* ======= SIDEBAR ======= */
     #sidebar {
-      width: var(--sidebar-w); min-width: var(--sidebar-w);
-      background: var(--bg-sidebar);
-      display: flex; flex-direction: column;
-      transition: width var(--sidebar-transition), min-width var(--sidebar-transition);
-      overflow: hidden; position: relative; z-index: 10;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
-      background-size: 32px 32px;
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      transition: width .22s ease, min-width .22s ease;
+      overflow: hidden;
+      position: relative;
+      z-index: 100;
     }
-    #sidebar.collapsed { width: var(--sidebar-collapsed-w); min-width: var(--sidebar-collapsed-w); }
+    #sidebar.collapsed { width: var(--sidebar-collapsed); min-width: var(--sidebar-collapsed); }
 
-    .sidebar-brand {
-      display: flex; align-items: center; gap: 10px;
-      padding: 0 16px; height: 56px; min-height: 56px;
-      border-bottom: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;
+    /* User block */
+    .sb-user {
+      padding: 14px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      cursor: pointer;
+      position: relative;
     }
-    .brand-icon {
-      width: 32px; height: 32px; min-width: 32px;
-      background: var(--accent); border-radius: 8px;
+    .sb-user-inner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .sb-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent);
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 700; color: #fff; letter-spacing: -0.5px;
-    }
-    .brand-text { color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; opacity: 1; transition: opacity var(--sidebar-transition); }
-    #sidebar.collapsed .brand-text { opacity: 0; }
-
-    .sidebar-user {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.07);
-      cursor: pointer; position: relative; flex-shrink: 0;
-    }
-    .sidebar-user:hover { background: var(--bg-sidebar-hover); }
-    .user-avatar {
-      width: 32px; height: 32px; min-width: 32px; border-radius: 50%;
-      background: linear-gradient(135deg, #2B7FFF, #7C3AED);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 600; color: #fff;
-    }
-    .user-meta { overflow: hidden; flex: 1; }
-    .user-company { font-size: 10px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-    .user-name { font-size: 12px; color: var(--text-sidebar-active); font-weight: 500; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-    .user-caret { color: var(--text-sidebar); font-size: 10px; margin-left: auto; flex-shrink: 0; }
-    #sidebar.collapsed .user-meta, #sidebar.collapsed .user-caret { display: none; }
-
-    .user-dropdown {
-      position: absolute; top: 100%; left: 12px;
-      background: #1A2D42; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px; padding: 4px; z-index: 200; min-width: 180px;
-      display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    }
-    .user-dropdown.open { display: block; }
-    .user-dropdown a {
-      display: block; padding: 8px 12px; color: var(--text-sidebar);
-      text-decoration: none; border-radius: 5px; font-size: 12px; transition: background 0.1s;
-    }
-    .user-dropdown a:hover { background: var(--bg-sidebar-active); color: #fff; }
-    .user-dropdown .divider { border-top: 1px solid rgba(255,255,255,0.07); margin: 4px 0; }
-
-    .sidebar-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 0; }
-    .sidebar-nav::-webkit-scrollbar { width: 3px; }
-    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-
-    .nav-section-label {
-      padding: 12px 16px 4px;
-      font-size: 10px; font-weight: 600; color: rgba(143,168,192,0.5);
-      letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap;
-      transition: opacity var(--sidebar-transition);
-    }
-    #sidebar.collapsed .nav-section-label { opacity: 0; }
-
-    .nav-item { position: relative; }
-    .nav-link {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 16px; color: var(--text-sidebar);
-      cursor: pointer; text-decoration: none;
-      transition: background 0.12s, color 0.12s;
-      white-space: nowrap; overflow: hidden; user-select: none;
-    }
-    .nav-link:hover { background: var(--bg-sidebar-hover); color: var(--text-sidebar-active); }
-    .nav-link.active { background: var(--bg-sidebar-active); color: var(--text-sidebar-active); }
-    .nav-link.active .nav-icon { color: var(--accent); }
-    .nav-icon { width: 16px; min-width: 16px; text-align: center; font-size: 13px; }
-    .nav-label { font-size: 12.5px; font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; transition: opacity var(--sidebar-transition); }
-    #sidebar.collapsed .nav-label { opacity: 0; pointer-events: none; }
-    .nav-arrow { font-size: 9px; transition: transform 0.18s; margin-left: auto; flex-shrink: 0; }
-    .nav-arrow.open { transform: rotate(90deg); }
-    #sidebar.collapsed .nav-arrow { opacity: 0; }
-
-    .sub-nav { overflow: hidden; max-height: 0; transition: max-height 0.22s ease; }
-    .sub-nav.open { max-height: 800px; }
-    .sub-nav .nav-link { padding-left: 42px; font-size: 12px; }
-    .sub-nav .nav-link .nav-icon { display: none; }
-    .sub-nav-3 .nav-link { padding-left: 58px; }
-
-    .sidebar-footer { border-top: 1px solid rgba(255,255,255,0.07); padding: 8px; flex-shrink: 0; }
-    .collapse-btn {
-      width: 100%; display: flex; align-items: center; gap: 10px;
-      padding: 8px; background: none; border: none; cursor: pointer;
-      color: var(--text-sidebar); border-radius: 6px;
-      transition: background 0.12s, color 0.12s; font-family: var(--font);
-    }
-    .collapse-btn:hover { background: var(--bg-sidebar-hover); color: var(--text-sidebar-active); }
-    .collapse-btn-label { font-size: 12px; font-weight: 500; white-space: nowrap; opacity: 1; transition: opacity var(--sidebar-transition); }
-    #sidebar.collapsed .collapse-btn-label { opacity: 0; }
-    .collapse-icon { width: 16px; min-width: 16px; text-align: center; transition: transform var(--sidebar-transition); }
-    #sidebar.collapsed .collapse-icon { transform: rotate(180deg); }
-
-    /* collapsed tooltip */
-    #sidebar.collapsed .nav-link[data-tip]:hover::after {
-      content: attr(data-tip);
-      position: absolute; left: calc(var(--sidebar-collapsed-w) + 6px); top: 50%;
-      transform: translateY(-50%);
-      background: #1A2D42; color: #fff; font-size: 12px;
-      padding: 5px 10px; border-radius: 5px; white-space: nowrap;
-      pointer-events: none; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    /* ── MAIN ── */
-    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-    /* ── TAB BAR ── */
-    #tabbar {
-      height: var(--topbar-h); min-height: var(--topbar-h);
-      background: var(--bg-white); border-bottom: 1px solid var(--border);
-      display: flex; align-items: stretch; overflow: hidden; flex-shrink: 0;
-    }
-    .tabbar-left {
-      display: flex; align-items: center; padding: 0 8px; gap: 4px;
-      border-right: 1px solid var(--border);
-    }
-    .tabbar-left button {
-      width: 28px; height: 28px; border: none; background: none;
-      border-radius: 5px; cursor: pointer; color: var(--text-muted);
-      font-size: 12px; display: flex; align-items: center; justify-content: center;
-      transition: background 0.1s, color 0.1s;
-    }
-    .tabbar-left button:hover { background: var(--bg-main); color: var(--text-body); }
-    .tabs-scroll { flex: 1; display: flex; align-items: stretch; overflow-x: auto; }
-    .tabs-scroll::-webkit-scrollbar { display: none; }
-    .tab {
-      display: flex; align-items: center; gap: 6px;
-      padding: 0 14px; white-space: nowrap; cursor: pointer;
-      font-size: 12.5px; font-weight: 500; color: var(--text-muted);
-      border-right: 1px solid var(--border); position: relative;
-      transition: background 0.1s, color 0.1s; user-select: none; min-width: 90px;
-    }
-    .tab:hover { background: var(--bg-main); color: var(--text-body); }
-    .tab.active { background: var(--bg-main); color: var(--accent); }
-    .tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--accent); }
-    .tab-close {
-      width: 16px; height: 16px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      background: none; border: none; cursor: pointer;
-      color: inherit; font-size: 9px; opacity: 0.5;
-      transition: background 0.1s, opacity 0.1s; margin-left: 2px;
-    }
-    .tab-close:hover { background: rgba(0,0,0,0.1); opacity: 1; }
-    .tabbar-right {
-      display: flex; align-items: center; padding: 0 8px; gap: 4px;
-      border-left: 1px solid var(--border);
-    }
-    .tabbar-right button {
-      display: flex; align-items: center; gap: 5px;
-      height: 28px; padding: 0 10px; border: none;
-      background: none; border-radius: 5px; cursor: pointer;
-      font-size: 12px; font-weight: 500; color: var(--text-muted);
-      font-family: var(--font); transition: background 0.1s, color 0.1s;
-    }
-    .tabbar-right button:hover { background: var(--bg-main); color: var(--text-body); }
-    .logout-btn { color: var(--danger) !important; }
-    .logout-btn:hover { background: rgba(239,68,68,0.08) !important; }
-
-    /* more dropdown */
-    .more-wrap { position: relative; }
-    .more-menu {
-      position: absolute; top: calc(100% + 4px); right: 0;
-      background: var(--bg-white); border: 1px solid var(--border);
-      border-radius: 8px; padding: 4px; z-index: 100; min-width: 180px;
-      display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-    }
-    .more-menu.open { display: block; }
-    .more-menu a {
-      display: block; padding: 8px 12px; border-radius: 5px;
-      font-size: 12px; color: var(--text-body); text-decoration: none;
-      cursor: pointer; transition: background 0.1s;
-    }
-    .more-menu a:hover { background: var(--bg-main); }
-    .more-menu .divider { border-top: 1px solid var(--border); margin: 4px 0; }
-
-    /* ── CONTENT ── */
-    #content { flex: 1; overflow: hidden; position: relative; background: var(--bg-main); }
-    .content-panel { position: absolute; inset: 0; display: none; flex-direction: column; overflow: hidden; }
-    .content-panel.active { display: flex; }
-
-    /* scrollable inner */
-    .panel-scroll { flex: 1; overflow-y: auto; padding: 24px; }
-    .panel-scroll::-webkit-scrollbar { width: 5px; }
-    .panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
-
-    /* ── HOME PANEL ── */
-    .home-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px; align-content: start;
-    }
-    .section-header {
-      grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding-top: 8px;
-    }
-    .section-header h2 { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.6px; text-transform: uppercase; }
-    .section-line { flex: 1; height: 1px; background: var(--border); }
-    .stat-card {
-      background: var(--bg-white); border: 1px solid var(--border);
-      border-radius: 10px; padding: 20px;
-      display: flex; flex-direction: column; gap: 8px;
-      transition: box-shadow 0.15s;
-    }
-    .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
-    .stat-card-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
-    .stat-card-value { font-size: 24px; font-weight: 700; }
-    .stat-card-label { font-size: 11.5px; color: var(--text-muted); font-weight: 500; }
-    .stat-card-delta { font-size: 11px; font-weight: 600; }
-    .delta-up { color: var(--success); }
-    .delta-down { color: var(--danger); }
-    .quick-card {
-      background: var(--bg-white); border: 1px solid var(--border);
-      border-radius: 10px; padding: 16px;
-      display: flex; align-items: center; gap: 12px;
-      cursor: pointer; text-decoration: none; color: var(--text-body);
-      transition: box-shadow 0.15s, border-color 0.15s;
-    }
-    .quick-card:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-    .quick-card-icon {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: var(--accent-dim); color: var(--accent);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-    }
-    .quick-card-label { font-size: 12.5px; font-weight: 500; }
-    .quick-card-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-
-    /* ── PAGE HEADER (shared by inner pages) ── */
-    .page-header {
-      padding: 16px 24px 0; display: flex; align-items: center; justify-content: space-between;
+      font-size: 14px; font-weight: 700; color: #fff;
       flex-shrink: 0;
     }
-    .page-title { font-size: 16px; font-weight: 700; }
-    .page-breadcrumb { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
-    .page-actions { display: flex; gap: 8px; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 7px 14px; border-radius: 7px; font-size: 12.5px;
-      font-weight: 500; font-family: var(--font); cursor: pointer;
-      border: 1px solid transparent; transition: all 0.12s;
-    }
-    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .btn-primary:hover { background: #1a6fe8; }
-    .btn-outline { background: #fff; color: var(--text-body); border-color: var(--border); }
-    .btn-outline:hover { border-color: #cbd5e1; background: var(--bg-main); }
-    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
-    .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+    .sb-user-info { overflow: hidden; flex: 1; }
+    .sb-user-name { font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sb-user-role { font-size: 10px; color: rgba(255,255,255,.5); }
+    .sb-user-caret { color: rgba(255,255,255,.5); font-size: 11px; transition: transform .2s; }
+    .sb-user.open .sb-user-caret { transform: rotate(180deg); }
 
-    /* ── FILTER BAR ── */
-    .filter-bar {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      padding: 12px 24px; flex-shrink: 0;
+    .sb-user-menu {
+      display: none;
+      position: absolute;
+      left: 10px; right: 10px; top: calc(100% + 4px);
+      background: #1a2e45;
+      border-radius: 6px;
+      overflow: hidden;
+      z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
     }
-    .filter-input {
-      padding: 7px 10px; border: 1px solid var(--border);
-      border-radius: 7px; font-family: var(--font); font-size: 12.5px;
-      color: var(--text-body); background: #fff; outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
+    .sb-user.open .sb-user-menu { display: block; }
+    .sb-user-menu a {
+      display: block; padding: 9px 14px;
+      color: rgba(255,255,255,.85); text-decoration: none;
+      font-size: 12px; transition: background .15s;
     }
-    .filter-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-    .filter-input.wide { min-width: 200px; }
-    select.filter-input { cursor: pointer; }
-    .filter-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+    .sb-user-menu a:hover { background: rgba(43,127,255,.2); color: #fff; }
+    .sb-user-menu hr { border: none; border-top: 1px solid rgba(255,255,255,.1); margin: 2px 0; }
 
-    /* ── TABLE ── */
+    /* Nav */
+    .sb-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 0; }
+    .sb-nav::-webkit-scrollbar { width: 4px; }
+    .sb-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+    .nav-item {
+      display: flex; align-items: center;
+      padding: 9px 14px;
+      cursor: pointer;
+      color: rgba(255,255,255,.75);
+      font-size: 12.5px;
+      gap: 10px;
+      white-space: nowrap;
+      transition: background .15s, color .15s;
+      user-select: none;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+    .nav-item.active { background: rgba(43,127,255,.2); color: var(--accent); }
+    .nav-item .nav-icon { width: 18px; text-align: center; flex-shrink: 0; font-size: 13px; }
+    .nav-item .nav-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .nav-item .nav-arrow { font-size: 10px; transition: transform .2s; flex-shrink: 0; }
+    .nav-item.open .nav-arrow { transform: rotate(90deg); }
+
+    .nav-children { display: none; }
+    .nav-children.open { display: block; }
+
+    .nav-item.l2 { padding-left: 42px; font-size: 12px; }
+    .nav-item.l3 { padding-left: 62px; font-size: 11.5px; }
+
+    /* Collapse toggle */
+    .sb-footer {
+      padding: 10px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex; justify-content: flex-end;
+    }
+    .sb-toggle {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      background: rgba(255,255,255,.08);
+      border: none; cursor: pointer;
+      color: rgba(255,255,255,.6);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .sb-toggle:hover { background: rgba(255,255,255,.15); color: #fff; }
+    #sidebar.collapsed .sb-toggle i { transform: rotate(180deg); }
+
+    /* Collapsed sidebar labels hide */
+    #sidebar.collapsed .nav-label,
+    #sidebar.collapsed .nav-arrow,
+    #sidebar.collapsed .sb-user-info,
+    #sidebar.collapsed .sb-user-caret,
+    #sidebar.collapsed .sb-user-menu { display: none !important; }
+    #sidebar.collapsed .nav-item { padding: 10px 0; justify-content: center; }
+    #sidebar.collapsed .nav-item .nav-icon { width: 100%; text-align: center; }
+    #sidebar.collapsed .nav-children { display: none !important; }
+    #sidebar.collapsed .sb-footer { justify-content: center; }
+    #sidebar.collapsed .sb-user { padding: 10px; }
+    #sidebar.collapsed .sb-user-inner { justify-content: center; }
+
+    /* ======= MAIN AREA ======= */
+    #main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+
+    /* Tab bar */
+    #tabbar {
+      height: var(--tab-h);
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 8px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .tb-btn {
+      width: 28px; height: 28px; border-radius: 5px;
+      border: none; cursor: pointer; background: transparent;
+      color: #666; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0; transition: background .15s;
+    }
+    .tb-btn:hover { background: var(--hover); color: var(--accent); }
+
+    .tab-strip-wrap { flex: 1; overflow: hidden; position: relative; min-width: 0; }
+    #tab-strip {
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      gap: 2px;
+      height: var(--tab-h);
+      align-items: flex-end;
+    }
+    #tab-strip::-webkit-scrollbar { display: none; }
+
+    .tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 12px;
+      height: 36px;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      font-size: 12px;
+      white-space: nowrap;
+      color: #666;
+      background: #f2f5f8;
+      transition: background .15s, color .15s;
+      flex-shrink: 0;
+    }
+    .tab:hover { background: #e8edf3; color: var(--text); }
+    .tab.active { background: #fff; color: var(--accent); border-color: var(--border); font-weight: 600; }
+    .tab .tab-close {
+      width: 16px; height: 16px; border-radius: 3px;
+      border: none; cursor: pointer; background: transparent;
+      color: #aaa; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; transition: background .15s, color .15s;
+    }
+    .tab .tab-close:hover { background: rgba(0,0,0,.1); color: #333; }
+    .tab.active .tab-close:hover { background: rgba(43,127,255,.12); color: var(--accent); }
+
+    .tb-more { position: relative; }
+    .tb-more-menu {
+      display: none; position: absolute;
+      right: 0; top: calc(100% + 4px);
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      z-index: 300; min-width: 180px; overflow: hidden;
+    }
+    .tb-more.open .tb-more-menu { display: block; }
+    .tb-more-menu a {
+      display: block; padding: 9px 14px;
+      color: var(--text); text-decoration: none; font-size: 12px;
+      transition: background .15s;
+    }
+    .tb-more-menu a:hover { background: var(--hover); }
+
+    .tb-logout {
+      margin-left: 4px;
+      padding: 5px 12px;
+      background: #fee2e2; border: 1px solid #fca5a5;
+      color: #dc2626; border-radius: 5px; font-size: 12px;
+      cursor: pointer; white-space: nowrap; font-weight: 500;
+      transition: background .15s;
+    }
+    .tb-logout:hover { background: #fecaca; }
+
+    /* ======= CONTENT ======= */
+    #content { flex: 1; overflow: auto; padding: 20px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ===== HOME PANEL ===== */
+    .home-title { font-size: 20px; font-weight: 700; margin-bottom: 18px; color: var(--text); }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: #fff; border-radius: 10px; padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .stat-icon.blue { background: #eff6ff; color: var(--accent); }
+    .stat-icon.orange { background: #fff7ed; color: #f97316; }
+    .stat-icon.green { background: #f0fdf4; color: #22c55e; }
+    .stat-icon.purple { background: #faf5ff; color: #a855f7; }
+    .stat-val { font-size: 26px; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 11px; color: #64748b; margin-top: 3px; }
+
+    .qa-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .qa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .qa-card {
+      background: #fff; border-radius: 8px; padding: 16px;
+      text-align: center; cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      transition: box-shadow .15s, transform .15s;
+    }
+    .qa-card:hover { box-shadow: 0 4px 12px rgba(43,127,255,.15); transform: translateY(-1px); }
+    .qa-card i { font-size: 22px; color: var(--accent); margin-bottom: 8px; display: block; }
+    .qa-card span { font-size: 11.5px; font-weight: 500; }
+
+    /* ===== PLACEHOLDER PANEL ===== */
+    .placeholder-panel {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 400px; color: #94a3b8; text-align: center;
+    }
+    .placeholder-icon { font-size: 54px; margin-bottom: 16px; }
+    .placeholder-title { font-size: 18px; font-weight: 600; color: #64748b; margin-bottom: 8px; }
+    .placeholder-sub { font-size: 13px; max-width: 380px; }
+
+    /* ===== IMPORT CONFIRM PANEL ===== */
+    .ic-inner-tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
+    .ic-tab {
+      padding: 8px 16px; cursor: pointer; font-size: 12.5px; font-weight: 500;
+      color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -2px;
+      transition: color .15s;
+    }
+    .ic-tab:hover { color: var(--accent); }
+    .ic-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .ic-tab-panel { display: none; }
+    .ic-tab-panel.active { display: block; }
+
+    /* Toolbar */
+    .ic-toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .ic-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 5px;
+      border: 1px solid var(--border);
+      background: #fff; cursor: pointer; font-size: 11.5px;
+      color: var(--text); font-family: inherit;
+      transition: background .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .ic-btn:hover { background: var(--hover); border-color: var(--accent); color: var(--accent); }
+    .ic-btn i { font-size: 12px; }
+
+    /* Table wrapper */
     .table-wrap {
-      flex: 1; overflow: auto; margin: 0 24px 24px;
-      border: 1px solid var(--border); border-radius: 10px;
+      border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; background: #fff;
+    }
+    .table-scroll { overflow-x: auto; max-height: 540px; }
+    table.ic-table {
+      border-collapse: separate; border-spacing: 0;
+      min-width: 2400px; font-size: 11.5px;
+    }
+    table.ic-table thead { position: sticky; top: 0; z-index: 10; }
+    table.ic-table thead tr.hdr-name th {
+      background: #1e3a5f; color: #fff;
+      padding: 7px 8px; border-right: 1px solid rgba(255,255,255,.12);
+      font-weight: 600; font-size: 11px; white-space: nowrap;
+      position: sticky; top: 0;
+    }
+    table.ic-table thead tr.hdr-filter th {
+      background: #f8fafc; border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 4px 5px;
+      position: sticky; top: var(--row-h);
+    }
+    table.ic-table thead th:first-child,
+    table.ic-table tbody td:first-child {
+      position: sticky; left: 0; z-index: 5; background: inherit;
+    }
+    table.ic-table thead tr.hdr-name th:first-child { z-index: 12; }
+    table.ic-table thead tr.hdr-filter th:first-child { z-index: 12; }
+
+    table.ic-table tbody tr { border-bottom: 1px solid var(--border); }
+    table.ic-table tbody tr:hover td { background: #f5f8ff !important; }
+    table.ic-table tbody td {
+      padding: 6px 8px; border-right: 1px solid var(--border);
+      white-space: nowrap; vertical-align: middle;
       background: #fff;
     }
-    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-    thead th {
-      padding: 10px 14px; text-align: left;
-      font-size: 11px; font-weight: 600; color: var(--text-muted);
-      letter-spacing: 0.4px; text-transform: uppercase;
-      background: #F8FAFC; border-bottom: 1px solid var(--border);
-      white-space: nowrap; position: sticky; top: 0; z-index: 1;
-    }
-    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: #F8FAFC; }
-    td { padding: 10px 14px; vertical-align: middle; white-space: nowrap; }
-    td a { color: var(--accent); text-decoration: none; font-weight: 500; }
-    td a:hover { text-decoration: underline; }
+    table.ic-table tbody tr:nth-child(even) td { background: #fafbfd; }
+    table.ic-table tbody tr:nth-child(even):hover td { background: #f5f8ff !important; }
 
-    /* badges */
+    .ic-filter { width: 100%; font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 3px 5px; font-family: inherit; }
+    .ic-filter:focus { outline: none; border-color: var(--accent); }
+    .date-pair { display: flex; flex-direction: column; gap: 2px; }
+    .date-pair input { width: 100%; font-size: 10px; border: 1px solid var(--border); border-radius: 4px; padding: 2px 4px; font-family: inherit; }
+
+    /* Badges */
     .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      display: inline-block; padding: 2px 7px; border-radius: 20px;
+      font-size: 10px; font-weight: 600; white-space: nowrap;
     }
-    .badge-green { background: #DCFCE7; color: #166534; }
-    .badge-blue { background: #DBEAFE; color: #1e40af; }
-    .badge-orange { background: #FFEDD5; color: #9a3412; }
-    .badge-red { background: #FEE2E2; color: #991b1b; }
-    .badge-gray { background: #F1F5F9; color: #475569; }
-    .badge-purple { background: #F3E8FF; color: #6b21a8; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-orange { background: #ffedd5; color: #c2410c; }
+    .badge-yellow { background: #fef9c3; color: #92400e; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-gray { background: #f1f5f9; color: #475569; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-purple { background: #f3e8ff; color: #6b21a8; }
 
-    /* ── IMPORT CONFIRM INNER TABS ── */
-    .ic-tabs-bar {
-      display: flex; align-items: stretch; background: var(--bg-white);
-      border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 0 16px; gap: 0;
+    .tag-pill {
+      display: inline-block; padding: 1px 6px; border-radius: 12px;
+      background: #e0e7ff; color: #3730a3; font-size: 9.5px; font-weight: 500;
+      margin: 1px 1px;
     }
-    .ic-tab {
-      padding: 10px 18px; font-size: 12.5px; font-weight: 500;
-      color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
-      transition: color 0.12s, border-color 0.12s; white-space: nowrap; user-select: none;
-    }
-    .ic-tab:hover { color: var(--text-body); }
-    .ic-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .ic-pane { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-    .ic-pane.active { display: flex; }
 
-    /* ── TOOLBAR ── */
-    .ic-toolbar {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-      padding: 10px 16px; background: var(--bg-white);
-      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    /* Pagination */
+    .pagination-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-top: 1px solid var(--border);
+      background: #fff; font-size: 12px; color: #64748b;
     }
-    .btn-warn { background: #FFFBEB; color: #92400e; border-color: #FCD34D; }
-    .btn-warn:hover { background: #FEF3C7; }
-    .btn-sm { padding: 5px 11px; font-size: 11.5px; }
-    .ic-toolbar .btn-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+    .pg-select { border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-size: 12px; }
+    .pg-btn { border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; cursor: pointer; background: #fff; font-size: 12px; }
+    .pg-btn:hover { background: var(--hover); border-color: var(--accent); }
 
-    /* ── UPDATE ATD/ATA FORM ── */
-    .form-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px; padding: 24px;
+    /* ===== MODALS ===== */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 1000;
+      align-items: center; justify-content: center;
     }
-    .form-card {
-      background: #fff; border: 1px solid var(--border); border-radius: 10px;
-      padding: 20px; display: flex; flex-direction: column; gap: 16px;
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      width: 90vw; max-width: 680px; max-height: 90vh;
+      display: flex; flex-direction: column; overflow: hidden;
     }
-    .form-card-title { font-size: 13px; font-weight: 600; color: var(--text-body); padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .field { display: flex; flex-direction: column; gap: 5px; }
-    .field label { font-size: 11.5px; font-weight: 500; color: var(--text-muted); }
-    .field input, .field select {
-      padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
-      font-family: var(--font); font-size: 12.5px; color: var(--text-body);
-      outline: none; transition: border-color 0.15s;
+    .modal.wide { max-width: 900px; }
+    .modal-hdr {
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
     }
-    .field input:focus, .field select:focus { border-color: var(--accent); }
-    .field input[type="datetime-local"] { cursor: pointer; }
-    .field-full { grid-column: 1 / -1; }
-    .form-footer { padding: 0 24px 24px; display: flex; gap: 8px; }
+    .modal-hdr h3 { font-size: 14px; font-weight: 600; }
+    .modal-close { background: none; border: none; cursor: pointer; font-size: 16px; color: #94a3b8; padding: 2px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 18px; overflow-y: auto; flex: 1; }
+    .modal-foot {
+      padding: 12px 18px; border-top: 1px solid var(--border);
+      display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0;
+    }
+    .btn { padding: 7px 16px; border-radius: 5px; border: none; cursor: pointer; font-size: 12.5px; font-family: inherit; font-weight: 500; transition: background .15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #1a6fe0; }
+    .btn-secondary { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
 
-    /* search result card */
-    .search-card {
-      background: #fff; border: 1px solid var(--border); border-radius: 10px;
-      padding: 20px; margin: 0 24px 16px;
-    }
-    .search-card-row { display: flex; flex-wrap: wrap; gap: 16px; }
-    .search-card-field { display: flex; flex-direction: column; gap: 3px; min-width: 160px; }
-    .search-card-field .lbl { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-    .search-card-field .val { font-size: 13px; font-weight: 600; color: var(--text-body); }
+    /* Columns Setup */
+    .col-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .col-item { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+    .col-item input[type=checkbox] { accent-color: var(--accent); }
 
-    /* placeholder panel */
-    .placeholder-panel {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 12px; color: var(--text-muted);
+    /* Sort rows */
+    .sort-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .sort-row select { flex: 1; border: 1px solid var(--border); border-radius: 4px; padding: 5px 7px; font-size: 12px; font-family: inherit; }
+    .sort-row label { display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; }
+    .sort-row input[type=radio] { accent-color: var(--accent); }
+    .sort-row .rm-btn { background: none; border: none; cursor: pointer; color: #ef4444; font-size: 13px; }
+
+    /* Advanced Filter */
+    .af-top-op { margin-bottom: 14px; }
+    .af-top-op label { font-size: 12px; font-weight: 500; margin-right: 10px; }
+    .af-group {
+      border: 1px solid var(--border); border-radius: 6px;
+      margin-bottom: 12px; overflow: hidden;
     }
-    .placeholder-panel i { font-size: 36px; opacity: 0.25; }
-    .placeholder-panel .ph-title { font-size: 15px; font-weight: 600; color: var(--text-body); }
-    .placeholder-panel .ph-sub { font-size: 13px; }
+    .af-group-hdr {
+      background: #f8fafc; padding: 8px 12px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .af-group-hdr label { font-size: 12px; font-weight: 500; }
+    .af-group-body { padding: 10px 12px; }
+    .af-line { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+    .af-line select, .af-line input { border: 1px solid var(--border); border-radius: 4px; padding: 5px 6px; font-size: 11.5px; font-family: inherit; }
+    .af-line select:first-child { width: 160px; flex-shrink: 0; }
+    .af-line select.op-sel { width: 130px; flex-shrink: 0; }
+    .af-line input { flex: 1; }
+    .af-line .rm-btn { background: none; border: none; cursor: pointer; color: #ef4444; font-size: 13px; flex-shrink: 0; }
+    .af-add-line-btn { font-size: 11.5px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 2px 0; }
+    .af-add-line-btn:hover { text-decoration: underline; }
+    .af-btm { display: flex; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .af-btm select { border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font-size: 12px; font-family: inherit; }
+
+    /* Account Mapping table */
+    .am-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .am-table th, .am-table td { padding: 8px 10px; border: 1px solid var(--border); text-align: left; }
+    .am-table th { background: #f8fafc; font-weight: 600; }
+
+    /* Get SC Job */
+    .form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .form-row label { font-size: 12px; font-weight: 500; min-width: 70px; }
+    .form-row input, .form-row select { border: 1px solid var(--border); border-radius: 4px; padding: 6px 9px; font-size: 12px; font-family: inherit; flex: 1; min-width: 120px; }
+
+    /* Tags multiselect */
+    .tags-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+    .tag-check { display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; }
+    .tag-check input { accent-color: var(--accent); }
+
+    /* Maintain Tags table */
+    .mt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .mt-table th, .mt-table td { padding: 8px 10px; border: 1px solid var(--border); }
+    .mt-table th { background: #f8fafc; font-weight: 600; }
   </style>
 </head>
 <body>
 <div id="app">
-
-  <!-- ══ SIDEBAR ══ -->
+  <!-- ===== SIDEBAR ===== -->
   <nav id="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">AX</div>
-      <span class="brand-text">Apex Workflow</span>
-    </div>
-
-    <div class="sidebar-user" id="userToggle">
-      <div class="user-avatar">AH</div>
-      <div class="user-meta">
-        <div class="user-company">APEX-SFO</div>
-        <div class="user-name">ASIF.HASAN</div>
+    <!-- User block -->
+    <div class="sb-user" id="sb-user-block" onclick="toggleUserMenu(event)">
+      <div class="sb-user-inner">
+        <div class="sb-avatar">A</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name">APEX-SFO</div>
+          <div class="sb-user-role">ASIF.HASAN</div>
+        </div>
+        <i class="fa fa-caret-down sb-user-caret"></i>
       </div>
-      <i class="fa fa-chevron-down user-caret"></i>
-      <div class="user-dropdown" id="userDropdown">
+      <div class="sb-user-menu" onclick="event.stopPropagation()">
         <a href="#">Profile</a>
-        <a href="#">Change Password</a>
+        <a href="login.html">Change Password</a>
         <a href="#">Change System &amp; Office</a>
-        <div class="divider"></div>
-        <a href="login.html" style="color:#EF4444">Log Out</a>
+        <hr>
+        <a href="login.html">LogOut</a>
       </div>
     </div>
 
-    <div class="sidebar-nav">
-
-      <div class="nav-item">
-        <a class="nav-link" data-tip="Update ATD&ATA" data-tab="Update ATD&amp;ATA" data-page="update-ata" onclick="navClick(this)">
-          <i class="nav-icon fa fa-gauge-high"></i>
-          <span class="nav-label">Update ATD &amp; ATA</span>
-        </a>
+    <!-- Nav -->
+    <div class="sb-nav" id="sb-nav">
+      <!-- L1: Update ATD&ATA -->
+      <div class="nav-item" data-index="2" onclick="navClick(2,'Update ATD&ATA')">
+        <i class="fa fa-tachometer-alt nav-icon"></i>
+        <span class="nav-label">Update ATD&amp;ATA</span>
       </div>
-
-      <div class="nav-item">
-        <div class="nav-link" onclick="toggleNav(this)">
-          <i class="nav-icon fa fa-paper-plane"></i>
-          <span class="nav-label">US</span>
-          <i class="nav-arrow fa fa-chevron-right"></i>
+      <!-- L1: US accordion -->
+      <div class="nav-item" data-acc="us" onclick="toggleAcc('us',this)">
+        <i class="fa fa-paper-plane nav-icon"></i>
+        <span class="nav-label">US</span>
+        <i class="fa fa-chevron-right nav-arrow"></i>
+      </div>
+      <div class="nav-children" id="acc-us">
+        <div class="nav-item l2" data-index="3" onclick="navClick(3,'DN List')"><span class="nav-label">DN List</span></div>
+        <div class="nav-item l2" data-index="4" onclick="navClick(4,'Delivery Address Confirmation')"><span class="nav-label">Delivery Address Confirmation</span></div>
+        <div class="nav-item l2" data-index="5" onclick="navClick(5,'Global IWT')"><span class="nav-label">Global IWT</span></div>
+        <div class="nav-item l2" data-index="6" onclick="navClick(6,'OP-AMS Confirm')"><span class="nav-label">OP-AMS Confirm</span></div>
+        <div class="nav-item l2" data-index="7" onclick="navClick(7,'Confirm Pre-DO')"><span class="nav-label">Confirm Pre-DO</span></div>
+        <div class="nav-item l2" data-index="8" onclick="navClick(8,'Packing List')"><span class="nav-label">Packing List</span></div>
+        <div class="nav-item l2" data-index="9" onclick="navClick(9,'Dispatch-WT')"><span class="nav-label">Dispatch-WT</span></div>
+        <div class="nav-item l2" data-index="10" onclick="navClick(10,'Dispatch-DO')"><span class="nav-label">Dispatch-DO</span></div>
+        <div class="nav-item l2" data-index="11" onclick="navClick(11,'CS-Document To Broker')"><span class="nav-label">CS-Document To Broker</span></div>
+        <div class="nav-item l2" data-index="12" onclick="navClick(12,'Custom Admission/Release')"><span class="nav-label">Custom Admission/Release</span></div>
+        <div class="nav-item l2" data-index="13" onclick="navClick(13,'Create Hold')"><span class="nav-label">Create Hold</span></div>
+        <div class="nav-item l2" data-index="14" onclick="navClick(14,'ABI Query')"><span class="nav-label">ABI Query</span></div>
+        <div class="nav-item l2" data-index="15" onclick="navClick(15,'New Import Job')"><span class="nav-label">New Import Job</span></div>
+        <div class="nav-item l2" data-index="16" onclick="navClick(16,'Import Confirm')"><span class="nav-label">Import Confirm</span></div>
+      </div>
+      <!-- xdoc -->
+      <div class="nav-item" data-index="17" onclick="navClick(17,'xdoc management')">
+        <i class="fa fa-table nav-icon"></i>
+        <span class="nav-label">xdoc management</span>
+      </div>
+      <!-- Shipment List -->
+      <div class="nav-item" data-index="18" onclick="navClick(18,'Shipment List')">
+        <i class="fa fa-cloud nav-icon"></i>
+        <span class="nav-label">Shipment List</span>
+      </div>
+      <!-- Invoice accordion -->
+      <div class="nav-item" data-acc="invoice" onclick="toggleAcc('invoice',this)">
+        <i class="fa fa-folder-open nav-icon"></i>
+        <span class="nav-label">Invoice</span>
+        <i class="fa fa-chevron-right nav-arrow"></i>
+      </div>
+      <div class="nav-children" id="acc-invoice">
+        <div class="nav-item l2" data-index="19" onclick="navClick(19,'Invoice Details')"><span class="nav-label">Invoice Details</span></div>
+        <!-- Billing Setting sub-accordion -->
+        <div class="nav-item l2" data-acc="billing" onclick="toggleAcc('billing',this)">
+          <span class="nav-label">Billing Setting</span>
+          <i class="fa fa-chevron-right nav-arrow"></i>
         </div>
-        <div class="sub-nav">
-          <div class="nav-link" data-tab="DN List" onclick="navClick(this)"><span class="nav-label">DN List</span></div>
-          <div class="nav-link" data-tab="Delivery Address Confirmation" onclick="navClick(this)"><span class="nav-label">Delivery Address Confirmation</span></div>
-          <div class="nav-link" data-tab="Global IWT" onclick="navClick(this)"><span class="nav-label">Global IWT</span></div>
-          <div class="nav-link" data-tab="OP-AMS Confirm" onclick="navClick(this)"><span class="nav-label">OP-AMS Confirm</span></div>
-          <div class="nav-link" data-tab="Confirm Pre-DO" onclick="navClick(this)"><span class="nav-label">Confirm Pre-DO</span></div>
-          <div class="nav-link" data-tab="Packing List" onclick="navClick(this)"><span class="nav-label">Packing List</span></div>
-          <div class="nav-link" data-tab="Dispatch-WT" onclick="navClick(this)"><span class="nav-label">Dispatch-WT</span></div>
-          <div class="nav-link" data-tab="Dispatch-DO" onclick="navClick(this)"><span class="nav-label">Dispatch-DO</span></div>
-          <div class="nav-link" data-tab="CS-Document To Broker" onclick="navClick(this)"><span class="nav-label">CS-Document To Broker</span></div>
-          <div class="nav-link" data-tab="Custom Admission/Release" onclick="navClick(this)"><span class="nav-label">Custom Admission/Release</span></div>
-          <div class="nav-link" data-tab="Create Hold" onclick="navClick(this)"><span class="nav-label">Create Hold</span></div>
-          <div class="nav-link" data-tab="ABI Query" onclick="navClick(this)"><span class="nav-label">ABI Query</span></div>
-          <div class="nav-link" data-tab="New Import Job" onclick="navClick(this)"><span class="nav-label">New Import Job</span></div>
-          <div class="nav-link" data-tab="Import Confirm" data-page="import-confirm" onclick="navClick(this)"><span class="nav-label">Import Confirm</span></div>
+        <div class="nav-children" id="acc-billing">
+          <div class="nav-item l3" data-index="20" onclick="navClick(20,'ImportConversion')"><span class="nav-label">ImportConversion</span></div>
+          <div class="nav-item l3" data-index="21" onclick="navClick(21,'Price Setting')"><span class="nav-label">Price Setting</span></div>
+          <div class="nav-item l3" data-index="22" onclick="navClick(22,'Auto Setting')"><span class="nav-label">Auto Setting</span></div>
+          <div class="nav-item l3" data-index="23" onclick="navClick(23,'WeekSetting')"><span class="nav-label">WeekSetting</span></div>
+          <div class="nav-item l3" data-index="24" onclick="navClick(24,'OriDestRate')"><span class="nav-label">OriDestRate</span></div>
         </div>
-      </div>
-
-      <div class="nav-item">
-        <a class="nav-link" data-tip="xdoc Management" data-tab="xdoc Management" onclick="navClick(this)">
-          <i class="nav-icon fa fa-table"></i>
-          <span class="nav-label">xdoc Management</span>
-        </a>
-      </div>
-
-      <div class="nav-item">
-        <a class="nav-link" data-tip="Shipment List" data-tab="Shipment List" onclick="navClick(this)">
-          <i class="nav-icon fa fa-cloud"></i>
-          <span class="nav-label">Shipment List</span>
-        </a>
-      </div>
-
-      <div class="nav-item">
-        <div class="nav-link" onclick="toggleNav(this)">
-          <i class="nav-icon fa fa-folder-open"></i>
-          <span class="nav-label">Invoice</span>
-          <i class="nav-arrow fa fa-chevron-right"></i>
-        </div>
-        <div class="sub-nav">
-          <div class="nav-link" data-tab="Invoice Details" onclick="navClick(this)"><span class="nav-label">Invoice Details</span></div>
-          <div class="nav-link" onclick="toggleNav(this)"><span class="nav-label">Billing Setting</span><i class="nav-arrow fa fa-chevron-right" style="margin-left:auto"></i></div>
-          <div class="sub-nav sub-nav-3">
-            <div class="nav-link" data-tab="ImportConversion" onclick="navClick(this)"><span class="nav-label">ImportConversion</span></div>
-            <div class="nav-link" data-tab="Price Setting" onclick="navClick(this)"><span class="nav-label">Price Setting</span></div>
-            <div class="nav-link" data-tab="Auto Setting" onclick="navClick(this)"><span class="nav-label">Auto Setting</span></div>
-            <div class="nav-link" data-tab="WeekSetting" onclick="navClick(this)"><span class="nav-label">WeekSetting</span></div>
-            <div class="nav-link" data-tab="OriDestRate" onclick="navClick(this)"><span class="nav-label">OriDestRate</span></div>
-          </div>
-          <div class="nav-link" data-tab="LenovoRemark" onclick="navClick(this)"><span class="nav-label">LenovoRemark</span></div>
-          <div class="nav-link" onclick="toggleNav(this)"><span class="nav-label">Report</span><i class="nav-arrow fa fa-chevron-right" style="margin-left:auto"></i></div>
-          <div class="sub-nav sub-nav-3">
-            <div class="nav-link" data-tab="NCC_MSFT Report" onclick="navClick(this)"><span class="nav-label">NCC_MSFT Report</span></div>
-            <div class="nav-link" data-tab="MSFT Report" onclick="navClick(this)"><span class="nav-label">MSFT Report</span></div>
-          </div>
-          <div class="nav-link" data-tab="ChargeList" onclick="navClick(this)"><span class="nav-label">ChargeList</span></div>
-          <div class="nav-link" data-tab="Internal Settlement" onclick="navClick(this)"><span class="nav-label">Internal Settlement</span></div>
-          <div class="nav-link" data-tab="Charge Code Mapping" onclick="navClick(this)"><span class="nav-label">Charge Code Mapping</span></div>
-          <div class="nav-link" data-tab="Exception ShipmentLists" onclick="navClick(this)"><span class="nav-label">Exception ShipmentLists</span></div>
-          <div class="nav-link" data-tab="Charge Code" onclick="navClick(this)"><span class="nav-label">Charge Code</span></div>
-          <div class="nav-link" data-tab="BShipmentList" onclick="navClick(this)"><span class="nav-label">BShipmentList</span></div>
-          <div class="nav-link" data-tab="Invoice List" onclick="navClick(this)"><span class="nav-label">Invoice List</span></div>
-        </div>
-      </div>
-
-      <div class="nav-item">
-        <a class="nav-link" data-tip="214 Exception Mgmt" data-tab="214 Exception Management" onclick="navClick(this)">
-          <i class="nav-icon fa fa-book"></i>
-          <span class="nav-label">214 Exception Management</span>
-        </a>
-      </div>
-
-      <div class="nav-item">
-        <a class="nav-link" data-tip="Operation Log" data-tab="Operation Log" onclick="navClick(this)">
-          <i class="nav-icon fa fa-building"></i>
-          <span class="nav-label">Operation Log</span>
-        </a>
-      </div>
-
-      <div class="nav-item">
-        <div class="nav-link" onclick="toggleNav(this)">
-          <i class="nav-icon fa fa-reply-all"></i>
+        <div class="nav-item l2" data-index="25" onclick="navClick(25,'LenovoRemark')"><span class="nav-label">LenovoRemark</span></div>
+        <!-- Report sub-accordion -->
+        <div class="nav-item l2" data-acc="inv-report" onclick="toggleAcc('inv-report',this)">
           <span class="nav-label">Report</span>
-          <i class="nav-arrow fa fa-chevron-right"></i>
+          <i class="fa fa-chevron-right nav-arrow"></i>
         </div>
-        <div class="sub-nav">
-          <div class="nav-link" data-tab="ASUS Tracking Report" onclick="navClick(this)"><span class="nav-label">ASUS Tracking Report</span></div>
-          <div class="nav-link" data-tab="BillingCW Monitor" onclick="navClick(this)"><span class="nav-label">BillingCW Monitor</span></div>
-          <div class="nav-link" data-tab="EDI 214 Status Report-Air" onclick="navClick(this)"><span class="nav-label">EDI 214 Status Report-Air</span></div>
-          <div class="nav-link" data-tab="EDI 214 Status Report-Truck" onclick="navClick(this)"><span class="nav-label">EDI 214 Status Report-Truck</span></div>
-          <div class="nav-link" data-tab="GAP General Report" onclick="navClick(this)"><span class="nav-label">GAP General Report</span></div>
-          <div class="nav-link" data-tab="NCC_Tesla Billing Status" onclick="navClick(this)"><span class="nav-label">NCC_Tesla Billing Status</span></div>
-          <div class="nav-link" data-tab="Tesla Billing Status" onclick="navClick(this)"><span class="nav-label">Tesla Billing Status</span></div>
-          <div class="nav-link" data-tab="TMS Adoption Report" onclick="navClick(this)"><span class="nav-label">TMS Adoption Report</span></div>
+        <div class="nav-children" id="acc-inv-report">
+          <div class="nav-item l3" data-index="26" onclick="navClick(26,'NCC_MSFT Report')"><span class="nav-label">NCC_MSFT Report</span></div>
+          <div class="nav-item l3" data-index="27" onclick="navClick(27,'MSFT Report')"><span class="nav-label">MSFT Report</span></div>
         </div>
+        <div class="nav-item l2" data-index="28" onclick="navClick(28,'ChargeList')"><span class="nav-label">ChargeList</span></div>
+        <div class="nav-item l2" data-index="29" onclick="navClick(29,'Internal Settlement Management')"><span class="nav-label">Internal Settlement Management</span></div>
+        <div class="nav-item l2" data-index="30" onclick="navClick(30,'Charge Code Mapping')"><span class="nav-label">Charge Code Mapping</span></div>
+        <div class="nav-item l2" data-index="31" onclick="navClick(31,'Exception ShipmentLists')"><span class="nav-label">Exception ShipmentLists</span></div>
+        <div class="nav-item l2" data-index="32" onclick="navClick(32,'Internal Settlement Management(US)')"><span class="nav-label">Internal Settlement Management(US)</span></div>
+        <div class="nav-item l2" data-index="33" onclick="navClick(33,'Charge Code')"><span class="nav-label">Charge Code</span></div>
+        <div class="nav-item l2" data-index="34" onclick="navClick(34,'BShipmentList')"><span class="nav-label">BShipmentList</span></div>
+        <div class="nav-item l2" data-index="35" onclick="navClick(35,'Invoice List')"><span class="nav-label">Invoice List</span></div>
       </div>
-
-      <div class="nav-item">
-        <div class="nav-link" onclick="toggleNav(this)">
-          <i class="nav-icon fa fa-align-justify"></i>
-          <span class="nav-label">Air Event Management</span>
-          <i class="nav-arrow fa fa-chevron-right"></i>
-        </div>
-        <div class="sub-nav">
-          <div class="nav-link" data-tab="Air Event Management" onclick="navClick(this)"><span class="nav-label">Air Event Management</span></div>
-          <div class="nav-link" data-tab="Air Event Label Default" onclick="navClick(this)"><span class="nav-label">Air Event Label Default</span></div>
-          <div class="nav-link" data-tab="Air Event Log" onclick="navClick(this)"><span class="nav-label">Air Event Log</span></div>
-          <div class="nav-link" data-tab="Truck Milestone Management" onclick="navClick(this)"><span class="nav-label">Truck Milestone Management</span></div>
-          <div class="nav-link" data-tab="SHEIN AI Milestone" onclick="navClick(this)"><span class="nav-label">SHEIN AI Milestone</span></div>
-        </div>
+      <!-- 214 Exception -->
+      <div class="nav-item" data-index="36" onclick="navClick(36,'214 Exception Management')">
+        <i class="fa fa-exclamation-triangle nav-icon"></i>
+        <span class="nav-label">214 Exception Management</span>
       </div>
-
-      <div class="nav-item">
-        <div class="nav-link" onclick="toggleNav(this)">
-          <i class="nav-icon fa fa-user"></i>
-          <span class="nav-label">System Management</span>
-          <i class="nav-arrow fa fa-chevron-right"></i>
-        </div>
-        <div class="sub-nav">
-          <div class="nav-link" data-tab="Charge Code Management" onclick="navClick(this)"><span class="nav-label">Charge Code Management</span></div>
-          <div class="nav-link" data-tab="bAccounts" onclick="navClick(this)"><span class="nav-label">bAccounts</span></div>
-        </div>
+      <!-- Operation Log -->
+      <div class="nav-item" data-index="37" onclick="navClick(37,'Operation Log')">
+        <i class="fa fa-list nav-icon"></i>
+        <span class="nav-label">Operation Log</span>
       </div>
-
-      <div class="nav-item">
-        <div class="nav-link" onclick="toggleNav(this)">
-          <i class="nav-icon fa fa-cart-shopping"></i>
-          <span class="nav-label">E-Commerce</span>
-          <i class="nav-arrow fa fa-chevron-right"></i>
-        </div>
-        <div class="sub-nav">
-          <div class="nav-link" data-tab="Warehouse In" onclick="navClick(this)"><span class="nav-label">Warehouse In</span></div>
-          <div class="nav-link" data-tab="Segregation" onclick="navClick(this)"><span class="nav-label">Segregation</span></div>
-          <div class="nav-link" data-tab="Warehouse Out" onclick="navClick(this)"><span class="nav-label">Warehouse Out</span></div>
-          <div class="nav-link" data-tab="Consolidation" onclick="navClick(this)"><span class="nav-label">Consolidation</span></div>
-          <div class="nav-link" data-tab="Customs Exam" onclick="navClick(this)"><span class="nav-label">Customs Exam</span></div>
-          <div class="nav-link" data-tab="Exception Handling" onclick="navClick(this)"><span class="nav-label">Exception Handling</span></div>
-        </div>
+      <!-- Report accordion -->
+      <div class="nav-item" data-acc="report" onclick="toggleAcc('report',this)">
+        <i class="fa fa-bar-chart nav-icon"></i>
+        <span class="nav-label">Report</span>
+        <i class="fa fa-chevron-right nav-arrow"></i>
       </div>
-
-      <div class="nav-item">
-        <a class="nav-link" data-tip="Milestone Mgmt Center" data-tab="Milestone Management Center" onclick="navClick(this)">
-          <i class="nav-icon fa fa-address-card"></i>
-          <span class="nav-label">Milestone Management Center</span>
-        </a>
+      <div class="nav-children" id="acc-report">
+        <div class="nav-item l2" data-index="38" onclick="navClick(38,'ASUS Tracking Report')"><span class="nav-label">ASUS Tracking Report</span></div>
+        <div class="nav-item l2" data-index="39" onclick="navClick(39,'BillingCW Monitor')"><span class="nav-label">BillingCW Monitor</span></div>
+        <div class="nav-item l2" data-index="40" onclick="navClick(40,'EDI 214 Status Report-Air')"><span class="nav-label">EDI 214 Status Report-Air</span></div>
+        <div class="nav-item l2" data-index="41" onclick="navClick(41,'EDI 214 Status Report-Truck')"><span class="nav-label">EDI 214 Status Report-Truck</span></div>
+        <div class="nav-item l2" data-index="42" onclick="navClick(42,'GAP General Report')"><span class="nav-label">GAP General Report</span></div>
+        <div class="nav-item l2" data-index="43" onclick="navClick(43,'NCC_Tesla Billing Status')"><span class="nav-label">NCC_Tesla Billing Status</span></div>
+        <div class="nav-item l2" data-index="44" onclick="navClick(44,'Tesla Billing Status')"><span class="nav-label">Tesla Billing Status</span></div>
+        <div class="nav-item l2" data-index="45" onclick="navClick(45,'TMS_adoption_report')"><span class="nav-label">TMS_adoption_report</span></div>
       </div>
-
-      <div class="nav-item">
-        <a class="nav-link" data-tip="AI Booking" data-tab="AI Booking" onclick="navClick(this)">
-          <i class="nav-icon fa fa-robot"></i>
-          <span class="nav-label">AI Booking</span>
-        </a>
+      <!-- Air Event Management accordion -->
+      <div class="nav-item" data-acc="air" onclick="toggleAcc('air',this)">
+        <i class="fa fa-calendar nav-icon"></i>
+        <span class="nav-label">Air Event Management</span>
+        <i class="fa fa-chevron-right nav-arrow"></i>
       </div>
-
+      <div class="nav-children" id="acc-air">
+        <div class="nav-item l2" data-index="46" onclick="navClick(46,'Air Event Management')"><span class="nav-label">Air Event Management</span></div>
+        <div class="nav-item l2" data-index="47" onclick="navClick(47,'Air Event Label Default')"><span class="nav-label">Air Event Label Default</span></div>
+        <div class="nav-item l2" data-index="48" onclick="navClick(48,'Air Event Log')"><span class="nav-label">Air Event Log</span></div>
+        <div class="nav-item l2" data-index="49" onclick="navClick(49,'Truck Milestone Management')"><span class="nav-label">Truck Milestone Management</span></div>
+        <div class="nav-item l2" data-index="50" onclick="navClick(50,'SHEIN AI Milestone')"><span class="nav-label">SHEIN AI Milestone</span></div>
+      </div>
+      <!-- System management accordion -->
+      <div class="nav-item" data-acc="sys" onclick="toggleAcc('sys',this)">
+        <i class="fa fa-cog nav-icon"></i>
+        <span class="nav-label">System management</span>
+        <i class="fa fa-chevron-right nav-arrow"></i>
+      </div>
+      <div class="nav-children" id="acc-sys">
+        <div class="nav-item l2" data-index="51" onclick="navClick(51,'Charge code management')"><span class="nav-label">Charge code management</span></div>
+        <div class="nav-item l2" data-index="52" onclick="navClick(52,'bAccounts')"><span class="nav-label">bAccounts</span></div>
+      </div>
+      <!-- E-Commerce accordion -->
+      <div class="nav-item" data-acc="ecom" onclick="toggleAcc('ecom',this)">
+        <i class="fa fa-shopping-cart nav-icon"></i>
+        <span class="nav-label">E-Commerce</span>
+        <i class="fa fa-chevron-right nav-arrow"></i>
+      </div>
+      <div class="nav-children" id="acc-ecom">
+        <div class="nav-item l2" data-index="53" onclick="navClick(53,'Warehouse In')"><span class="nav-label">Warehouse In</span></div>
+        <div class="nav-item l2" data-index="54" onclick="navClick(54,'Segregation')"><span class="nav-label">Segregation</span></div>
+        <div class="nav-item l2" data-index="55" onclick="navClick(55,'Warehouse Out')"><span class="nav-label">Warehouse Out</span></div>
+        <div class="nav-item l2" data-index="56" onclick="navClick(56,'Consolidation')"><span class="nav-label">Consolidation</span></div>
+        <div class="nav-item l2" data-index="57" onclick="navClick(57,'Customs Exam')"><span class="nav-label">Customs Exam</span></div>
+        <div class="nav-item l2" data-index="58" onclick="navClick(58,'Exception Handling')"><span class="nav-label">Exception Handling</span></div>
+      </div>
     </div>
 
-    <div class="sidebar-footer">
-      <button class="collapse-btn" onclick="toggleSidebar()">
-        <i class="collapse-icon fa fa-chevrons-left nav-icon"></i>
-        <span class="collapse-btn-label">Collapse Sidebar</span>
+    <!-- Sidebar footer -->
+    <div class="sb-footer">
+      <button class="sb-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+        <i class="fa fa-chevron-left"></i>
       </button>
     </div>
   </nav>
 
-  <!-- ══ MAIN ══ -->
+  <!-- ===== MAIN ===== -->
   <div id="main">
-
     <!-- Tab bar -->
     <div id="tabbar">
-      <div class="tabbar-left">
-        <button onclick="scrollTabs(-1)" title="Scroll left"><i class="fa fa-chevron-left"></i></button>
-        <button onclick="scrollTabs(1)" title="Scroll right"><i class="fa fa-chevron-right"></i></button>
+      <button class="tb-btn" onclick="toggleSidebar()" title="Toggle sidebar"><i class="fa fa-bars"></i></button>
+      <button class="tb-btn" onclick="scrollTabs(-120)" title="Scroll left"><i class="fa fa-chevron-left"></i></button>
+      <div class="tab-strip-wrap">
+        <div id="tab-strip"></div>
       </div>
-      <div class="tabs-scroll" id="tabsScroll"></div>
-      <div class="tabbar-right">
-        <div class="more-wrap">
-          <button onclick="toggleMore()">More <i class="fa fa-caret-down" style="font-size:10px;margin-left:2px"></i></button>
-          <div class="more-menu" id="moreMenu">
-            <a onclick="goActiveTab()">Go to Current Tab</a>
-            <div class="divider"></div>
-            <a onclick="closeAllTabs()">Close All Tabs</a>
-            <a onclick="closeOtherTabs()">Close Other Tabs</a>
-          </div>
+      <button class="tb-btn" onclick="scrollTabs(120)" title="Scroll right"><i class="fa fa-chevron-right"></i></button>
+      <div class="tb-more" id="tb-more">
+        <button class="tb-btn" onclick="toggleMore()" title="More"><i class="fa fa-ellipsis-v"></i> More</button>
+        <div class="tb-more-menu">
+          <a href="#" onclick="goToCurrentTab();return false;">Go To Current Tab</a>
+          <a href="#" onclick="closeAllTabs();return false;">Close All Tabs</a>
+          <a href="#" onclick="closeOtherTabs();return false;">Close Other Tabs</a>
         </div>
-        <button class="logout-btn" onclick="window.location='login.html'">
-          <i class="fa fa-right-from-bracket"></i> Log Out
-        </button>
       </div>
+      <button class="tb-logout" onclick="window.location='login.html'"><i class="fa fa-sign-out-alt"></i> LogOut</button>
     </div>
 
     <!-- Content -->
     <div id="content">
-
-      <!-- ── HOME PANEL ── -->
-      <div class="content-panel active" id="panel-home">
-        <div class="panel-scroll">
-          <div class="home-grid">
-
-            <div class="section-header">
-              <h2>Operations Overview</h2><div class="section-line"></div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-icon" style="background:#EFF6FF;color:#2B7FFF"><i class="fa fa-ship"></i></div>
-              <div class="stat-card-value">147</div>
-              <div class="stat-card-label">Active Shipments</div>
-              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> 12 from yesterday</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-icon" style="background:#F0FDF4;color:#10B981"><i class="fa fa-circle-check"></i></div>
-              <div class="stat-card-value">34</div>
-              <div class="stat-card-label">Customs Cleared Today</div>
-              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> 8 ahead of schedule</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-icon" style="background:#FFF7ED;color:#F97316"><i class="fa fa-triangle-exclamation"></i></div>
-              <div class="stat-card-value">9</div>
-              <div class="stat-card-label">Pending 214 Exceptions</div>
-              <div class="stat-card-delta delta-down"><i class="fa fa-arrow-down" style="font-size:9px"></i> Needs attention</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-icon" style="background:#FDF4FF;color:#A855F7"><i class="fa fa-file-invoice-dollar"></i></div>
-              <div class="stat-card-value">$1.2M</div>
-              <div class="stat-card-label">Invoices This Week</div>
-              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> 4.2% vs last week</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-icon" style="background:#F0FDF4;color:#10B981"><i class="fa fa-plane-arrival"></i></div>
-              <div class="stat-card-value">23</div>
-              <div class="stat-card-label">Flights Arrived Today</div>
-              <div class="stat-card-delta delta-up"><i class="fa fa-arrow-up" style="font-size:9px"></i> On time rate 91%</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-icon" style="background:#EFF6FF;color:#2B7FFF"><i class="fa fa-file-import"></i></div>
-              <div class="stat-card-value">58</div>
-              <div class="stat-card-label">Import Confirms Pending</div>
-              <div class="stat-card-delta delta-down"><i class="fa fa-arrow-down" style="font-size:9px"></i> 6 overdue</div>
-            </div>
-
-            <div class="section-header">
-              <h2>Quick Access</h2><div class="section-line"></div>
-            </div>
-
-            <a class="quick-card" onclick="openTabByName('DN List')">
-              <div class="quick-card-icon"><i class="fa fa-list-check"></i></div>
-              <div><div class="quick-card-label">DN List</div><div class="quick-card-sub">View delivery notes</div></div>
-            </a>
-
-            <a class="quick-card" onclick="openTabByName('Import Confirm','import-confirm')">
-              <div class="quick-card-icon"><i class="fa fa-file-import"></i></div>
-              <div><div class="quick-card-label">Import Confirm</div><div class="quick-card-sub">58 pending confirmations</div></div>
-            </a>
-
-            <a class="quick-card" onclick="openTabByName('Update ATD&amp;ATA','update-ata')">
-              <div class="quick-card-icon"><i class="fa fa-gauge-high"></i></div>
-              <div><div class="quick-card-label">Update ATD &amp; ATA</div><div class="quick-card-sub">Flight departure/arrival</div></div>
-            </a>
-
-            <a class="quick-card" onclick="openTabByName('Shipment List')">
-              <div class="quick-card-icon"><i class="fa fa-boxes-stacked"></i></div>
-              <div><div class="quick-card-label">Shipment List</div><div class="quick-card-sub">All active shipments</div></div>
-            </a>
-
-            <a class="quick-card" onclick="openTabByName('Invoice List')">
-              <div class="quick-card-icon"><i class="fa fa-file-invoice"></i></div>
-              <div><div class="quick-card-label">Invoice List</div><div class="quick-card-sub">Billing &amp; settlement</div></div>
-            </a>
-
-            <a class="quick-card" onclick="openTabByName('214 Exception Management')">
-              <div class="quick-card-icon" style="background:rgba(239,68,68,0.1);color:#EF4444"><i class="fa fa-bell"></i></div>
-              <div><div class="quick-card-label">214 Exception Mgmt</div><div class="quick-card-sub">9 items pending</div></div>
-            </a>
-
-            <a class="quick-card" onclick="openTabByName('Air Event Management')">
-              <div class="quick-card-icon"><i class="fa fa-plane"></i></div>
-              <div><div class="quick-card-label">Air Event Management</div><div class="quick-card-sub">Track air milestones</div></div>
-            </a>
-
-            <a class="quick-card" onclick="openTabByName('Operation Log')">
-              <div class="quick-card-icon"><i class="fa fa-clipboard-list"></i></div>
-              <div><div class="quick-card-label">Operation Log</div><div class="quick-card-sub">Audit &amp; history</div></div>
-            </a>
-
+      <!-- Home panel -->
+      <div class="panel active" id="panel-home">
+        <div class="home-title">Dashboard</div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa fa-clock"></i></div>
+            <div><div class="stat-val">126</div><div class="stat-label">Pending Confirm</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><i class="fa fa-spinner"></i></div>
+            <div><div class="stat-val">43</div><div class="stat-label">In Processing</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
+            <div><div class="stat-val">89</div><div class="stat-label">Completed Today</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa fa-search"></i></div>
+            <div><div class="stat-val">312</div><div class="stat-label">ABI Queries</div></div>
+          </div>
+        </div>
+        <div class="qa-title">Quick Access</div>
+        <div class="qa-grid">
+          <div class="qa-card" onclick="navClick(16,'Import Confirm')">
+            <i class="fa fa-check-double"></i>
+            <span>Import Confirm</span>
+          </div>
+          <div class="qa-card" onclick="navClick(2,'Update ATD&ATA')">
+            <i class="fa fa-tachometer-alt"></i>
+            <span>Update ATD/ATA</span>
+          </div>
+          <div class="qa-card" onclick="navClick(14,'ABI Query')">
+            <i class="fa fa-search"></i>
+            <span>ABI Query</span>
+          </div>
+          <div class="qa-card" onclick="navClick(18,'Shipment List')">
+            <i class="fa fa-cloud"></i>
+            <span>Shipment List</span>
           </div>
         </div>
       </div>
 
-      <!-- ── IMPORT CONFIRM PANEL ── -->
-      <div class="content-panel" id="panel-import-confirm">
-
-        <!-- Inner tab bar -->
-        <div class="ic-tabs-bar">
-          <div class="ic-tab active" onclick="switchIcTab(this,'ic-pane-pending')">Import Confirm Pending</div>
-          <div class="ic-tab" onclick="switchIcTab(this,'ic-pane-list')">Import Confirm List</div>
-          <div class="ic-tab" onclick="switchIcTab(this,'ic-pane-abi')">ABI Query</div>
+      <!-- Import Confirm panel -->
+      <div class="panel" id="panel-16">
+        <div class="ic-inner-tabs" id="ic-inner-tabs">
+          <div class="ic-tab active" onclick="switchIcTab(0)">Import Confirm Pending</div>
+          <div class="ic-tab" onclick="switchIcTab(1)">Import Confirm List</div>
+          <div class="ic-tab" onclick="switchIcTab(2)">ABI Query</div>
         </div>
-
-        <!-- ── PANE 1: Pending ── -->
-        <div class="ic-pane active" id="ic-pane-pending">
+        <!-- Tab 0: Import Confirm Pending -->
+        <div class="ic-tab-panel active" id="ic-panel-0">
           <!-- Toolbar -->
           <div class="ic-toolbar">
-            <button class="btn btn-warn btn-sm" onclick="icClearSearch()"><i class="fa fa-xmark"></i> Clear All Search</button>
-            <div class="btn-sep"></div>
-            <button class="btn btn-primary btn-sm"><i class="fa fa-arrow-right-to-bracket"></i> Create Job to SC</button>
-            <button class="btn btn-success btn-sm" onclick="icBatchConfirm()"><i class="fa fa-check"></i> Confirm</button>
-            <button class="btn btn-primary btn-sm"><i class="fa fa-plus"></i> New Import Job</button>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-link"></i> Account Mapping</button>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-download"></i> Get SC Job</button>
-            <button class="btn btn-danger btn-sm"><i class="fa fa-trash"></i> Delete SC Job</button>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-pen-to-square"></i> Batch Update</button>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-magnifying-glass"></i> ABI Query</button>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-tag"></i> Update Tags</button>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-tags"></i> Maintain Tags</button>
+            <button class="ic-btn" onclick="openModal('modal-columns')"><i class="fa fa-eye"></i> Columns Setup</button>
+            <button class="ic-btn" onclick="openModal('modal-sort')"><i class="fa fa-sort"></i> Combination Sort</button>
+            <button class="ic-btn" onclick="openModal('modal-filter')"><i class="fa fa-filter"></i> Advanced Filter</button>
+            <button class="ic-btn" onclick="openModal('modal-save-template')"><i class="fa fa-bookmark"></i> Save Template</button>
+            <button class="ic-btn" onclick="openModal('modal-account-mapping')"><i class="fa fa-map"></i> Account Mapping</button>
+            <button class="ic-btn" onclick="openModal('modal-get-sc-job')"><i class="fa fa-search"></i> Get SC Job</button>
+            <button class="ic-btn" onclick="openModal('modal-batch-update')"><i class="fa fa-pen-to-square"></i> Batch Update</button>
+            <button class="ic-btn" onclick="openModal('modal-update-tags')"><i class="fa fa-tags"></i> Update Tags</button>
+            <button class="ic-btn" onclick="openModal('modal-maintain-tags')"><i class="fa fa-wrench"></i> Maintain Tags</button>
+            <button class="ic-btn"><i class="fa fa-file-excel"></i> Export Excel</button>
+            <button class="ic-btn"><i class="fa fa-plus"></i> Add New</button>
           </div>
           <!-- Table -->
           <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><input type="checkbox" onclick="toggleAllCheck(this,'ic-check-pending')"></th>
-                  <th>Status</th>
-                  <th>ABI Query Status</th>
-                  <th>ABI Query Match</th>
-                  <th>Tags</th>
-                  <th>ULD #</th>
-                  <th>HAWB Customer</th>
-                  <th>M #</th>
-                  <th>H #</th>
-                  <th>ETA</th>
-                  <th>POL</th>
-                  <th>POD</th>
-                  <th>Airline</th>
-                  <th>Firm Code</th>
-                  <th>Flight No</th>
-                  <th>Dest Handling Office</th>
-                  <th>Dest Gateway Office</th>
-                  <th>Address</th>
-                  <th>Last Free Date</th>
-                  <th>WT</th>
-                  <th>SC Job Status</th>
-                  <th>OP Remarks</th>
-                  <th>SC JOB No</th>
-                  <th>Pre-Alert Date</th>
-                  <th>Dest CS</th>
-                  <th>IsOvsAgent</th>
-                  <th>Query Send Date</th>
-                  <th>Query Update Date</th>
-                  <th>Operator</th>
-                </tr>
-              </thead>
-              <tbody id="icPendingBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- ── PANE 2: List ── -->
-        <div class="ic-pane" id="ic-pane-list">
-          <div class="ic-toolbar">
-            <button class="btn btn-warn btn-sm" onclick="icClearSearch()"><i class="fa fa-xmark"></i> Clear All Search</button>
-            <div class="btn-sep"></div>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-download"></i> Export</button>
-            <button class="btn btn-primary btn-sm"><i class="fa fa-magnifying-glass"></i> Search</button>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><input type="checkbox" onclick="toggleAllCheck(this,'ic-check-list')"></th>
-                  <th>Status</th>
-                  <th>ABI Query Status</th>
-                  <th>ABI Query Match</th>
-                  <th>Tags</th>
-                  <th>ULD #</th>
-                  <th>HAWB Customer</th>
-                  <th>M #</th>
-                  <th>H #</th>
-                  <th>ETA</th>
-                  <th>POL</th>
-                  <th>POD</th>
-                  <th>Airline</th>
-                  <th>Firm Code</th>
-                  <th>Flight No</th>
-                  <th>Dest Handling Office</th>
-                  <th>Dest Gateway Office</th>
-                  <th>Address</th>
-                  <th>Last Free Date</th>
-                  <th>WT</th>
-                  <th>SC Job Status</th>
-                  <th>OP Remarks</th>
-                  <th>SC JOB No</th>
-                  <th>Pre-Alert Date</th>
-                  <th>Dest CS</th>
-                  <th>IsOvsAgent</th>
-                  <th>Query Send Date</th>
-                  <th>Query Update Date</th>
-                  <th>Operator</th>
-                </tr>
-              </thead>
-              <tbody id="icListBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- ── PANE 3: ABI Query ── -->
-        <div class="ic-pane" id="ic-pane-abi">
-          <div class="ic-toolbar">
-            <button class="btn btn-warn btn-sm" onclick="icClearSearch()"><i class="fa fa-xmark"></i> Clear All Search</button>
-            <div class="btn-sep"></div>
-            <button class="btn btn-primary btn-sm"><i class="fa fa-magnifying-glass"></i> ABI Query</button>
-            <button class="btn btn-outline btn-sm"><i class="fa fa-download"></i> Export</button>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><input type="checkbox"></th>
-                  <th>H #</th>
-                  <th>M #</th>
-                  <th>HAWB Customer</th>
-                  <th>POL</th>
-                  <th>POD</th>
-                  <th>ETA</th>
-                  <th>Flight No</th>
-                  <th>ABI Query Status</th>
-                  <th>ABI Query Match</th>
-                  <th>Query Send Date</th>
-                  <th>Query Update Date</th>
-                  <th>Operator</th>
-                </tr>
-              </thead>
-              <tbody id="icAbiBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ── UPDATE ATD/ATA PANEL ── -->
-      <div class="content-panel" id="panel-update-ata">
-        <div class="page-header">
-          <div>
-            <div class="page-title">Update ATD &amp; ATA</div>
-            <div class="page-breadcrumb">Update Actual Time of Departure &amp; Arrival for flights</div>
-          </div>
-          <div class="page-actions">
-            <button class="btn btn-outline"><i class="fa fa-clock-rotate-left"></i> History</button>
-          </div>
-        </div>
-
-        <div class="filter-bar" style="border-bottom:1px solid var(--border);margin-bottom:0;">
-          <input class="filter-input wide" type="text" id="ataSearch" placeholder="Enter HAWB / Flight No. / MAWB" oninput="searchFlight()">
-          <button class="btn btn-primary" onclick="searchFlight()"><i class="fa fa-magnifying-glass"></i> Search</button>
-          <button class="btn btn-outline" onclick="clearSearch()">Clear</button>
-        </div>
-
-        <div id="ataSearchResult" style="display:none;" class="search-card">
-          <div class="search-card-row" id="ataResultFields"></div>
-        </div>
-
-        <div class="form-grid" id="ataFormGrid">
-          <div class="form-card">
-            <div class="form-card-title"><i class="fa fa-plane-departure" style="color:var(--accent);margin-right:6px"></i>Departure Info</div>
-            <div class="field">
-              <label>HAWB No.</label>
-              <input type="text" id="f_hawb" placeholder="e.g. SFO-2024-18834">
+            <div class="table-scroll">
+              <table class="ic-table" id="ic-table">
+                <thead>
+                  <tr class="hdr-name" id="hdr-name-row"></tr>
+                  <tr class="hdr-filter" id="hdr-filter-row"></tr>
+                </thead>
+                <tbody id="ic-tbody"></tbody>
+              </table>
             </div>
-            <div class="field">
-              <label>Flight No.</label>
-              <input type="text" id="f_flight" placeholder="e.g. UA857">
-            </div>
-            <div class="form-row">
-              <div class="field">
-                <label>Origin</label>
-                <input type="text" id="f_origin" placeholder="SFO">
-              </div>
-              <div class="field">
-                <label>Destination</label>
-                <input type="text" id="f_dest" placeholder="TPE">
-              </div>
-            </div>
-            <div class="field">
-              <label>ATD — Actual Time of Departure</label>
-              <input type="datetime-local" id="f_atd">
-            </div>
-          </div>
-
-          <div class="form-card">
-            <div class="form-card-title"><i class="fa fa-plane-arrival" style="color:var(--success);margin-right:6px"></i>Arrival Info</div>
-            <div class="field">
-              <label>MAWB No.</label>
-              <input type="text" id="f_mawb" placeholder="e.g. 016-12345678">
-            </div>
-            <div class="field">
-              <label>Carrier</label>
-              <select id="f_carrier">
-                <option value="">Select Carrier</option>
-                <option>United Airlines (UA)</option>
-                <option>American Airlines (AA)</option>
-                <option>Delta Airlines (DL)</option>
-                <option>Cathay Pacific (CX)</option>
-                <option>Emirates (EK)</option>
-                <option>Lufthansa (LH)</option>
-                <option>Singapore Airlines (SQ)</option>
+            <div class="pagination-bar">
+              <span>Items per page:</span>
+              <select class="pg-select" id="pg-size" onchange="updatePagination()">
+                <option>50</option><option>100</option><option>200</option><option>300</option><option>500</option>
               </select>
-            </div>
-            <div class="field">
-              <label>ATA — Actual Time of Arrival</label>
-              <input type="datetime-local" id="f_ata">
-            </div>
-            <div class="field">
-              <label>Remarks</label>
-              <input type="text" id="f_remark" placeholder="Optional remarks">
-            </div>
-          </div>
-
-          <div class="form-card">
-            <div class="form-card-title"><i class="fa fa-box" style="color:var(--warning);margin-right:6px"></i>Cargo Details</div>
-            <div class="form-row">
-              <div class="field">
-                <label>Pieces</label>
-                <input type="number" id="f_pcs" placeholder="0" min="0">
-              </div>
-              <div class="field">
-                <label>Weight (kg)</label>
-                <input type="number" id="f_wt" placeholder="0.00" step="0.01">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="field">
-                <label>Chargeable Wt (kg)</label>
-                <input type="number" id="f_cwt" placeholder="0.00" step="0.01">
-              </div>
-              <div class="field">
-                <label>Volume (CBM)</label>
-                <input type="number" id="f_vol" placeholder="0.00" step="0.01">
-              </div>
-            </div>
-            <div class="field">
-              <label>Commodity</label>
-              <input type="text" id="f_commodity" placeholder="e.g. Electronics / Auto Parts">
+              <button class="pg-btn" onclick="changePage(-1)">&#8249; Prev</button>
+              <span id="pg-info">Page 1 of 1 &nbsp;|&nbsp; 26 records</span>
+              <button class="pg-btn" onclick="changePage(1)">Next &#8250;</button>
             </div>
           </div>
         </div>
-
-        <div class="form-footer">
-          <button class="btn btn-primary" onclick="submitAta()"><i class="fa fa-floppy-disk"></i> Save & Confirm</button>
-          <button class="btn btn-outline" onclick="resetAtaForm()"><i class="fa fa-rotate-left"></i> Reset</button>
-          <span id="ataSubmitMsg" style="align-self:center;font-size:12.5px;color:var(--success);display:none;">
-            <i class="fa fa-circle-check"></i> Record updated successfully
-          </span>
+        <!-- Tab 1 placeholder -->
+        <div class="ic-tab-panel" id="ic-panel-1">
+          <div class="placeholder-panel">
+            <div class="placeholder-icon"><i class="fa fa-list"></i></div>
+            <div class="placeholder-title">Import Confirm List</div>
+            <div class="placeholder-sub">Shows confirmed import shipments.</div>
+          </div>
+        </div>
+        <!-- Tab 2 placeholder -->
+        <div class="ic-tab-panel" id="ic-panel-2">
+          <div class="placeholder-panel">
+            <div class="placeholder-icon"><i class="fa fa-search"></i></div>
+            <div class="placeholder-title">ABI Query</div>
+            <div class="placeholder-sub">Run ABI queries against CBP.</div>
+          </div>
         </div>
       </div>
 
-    </div><!-- #content -->
-  </div><!-- #main -->
-</div><!-- #app -->
+      <!-- Placeholder panels generated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- 1. Columns Setup -->
+<div class="modal-overlay" id="modal-columns">
+  <div class="modal">
+    <div class="modal-hdr"><h3>Columns Setup</h3><button class="modal-close" onclick="closeModal('modal-columns')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="col-grid" id="col-checklist"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="resetColumns()">Reset</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-columns')">Set as Default</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-columns')">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Combination Sort -->
+<div class="modal-overlay" id="modal-sort">
+  <div class="modal">
+    <div class="modal-hdr"><h3>Combination Sort</h3><button class="modal-close" onclick="closeModal('modal-sort')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <div id="sort-rows"></div>
+      <button class="btn btn-secondary" onclick="addSortRow()" style="margin-top:8px;"><i class="fa fa-plus"></i> Add Row</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="clearSort()">Clear</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-sort')">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Advanced Filter -->
+<div class="modal-overlay" id="modal-filter">
+  <div class="modal wide">
+    <div class="modal-hdr"><h3>Advanced Filter</h3><button class="modal-close" onclick="closeModal('modal-filter')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="af-top-op">
+        <label><b>Top connector:</b></label>
+        <label><input type="radio" name="top-op" value="AND" checked> AND</label>&nbsp;&nbsp;
+        <label><input type="radio" name="top-op" value="OR"> OR</label>
+      </div>
+      <div id="af-groups"></div>
+      <button class="btn btn-secondary" onclick="addAfGroup()" style="margin-top:8px;"><i class="fa fa-plus"></i> Add New Group</button>
+      <div class="af-btm">
+        <select id="af-template-sel"><option value="">-- Search Template --</option></select>
+        <button class="btn btn-primary" onclick="closeModal('modal-filter')">Search</button>
+        <button class="btn btn-secondary" onclick="resetFilter()">Reset</button>
+        <button class="btn btn-secondary" onclick="openModal('modal-save-template')">Save Template</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Save Search Template -->
+<div class="modal-overlay" id="modal-save-template">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hdr"><h3>Save Search Template</h3><button class="modal-close" onclick="closeModal('modal-save-template')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <label style="font-size:12px;font-weight:500;display:block;margin-bottom:6px;">Template Name</label>
+      <input type="text" id="template-name-input" style="width:100%;border:1px solid var(--border);border-radius:4px;padding:7px 10px;font-size:13px;font-family:inherit;" placeholder="Enter template name...">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('modal-save-template')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTemplate()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Account Mapping -->
+<div class="modal-overlay" id="modal-account-mapping">
+  <div class="modal wide">
+    <div class="modal-hdr"><h3>Account Mapping</h3><button class="modal-close" onclick="closeModal('modal-account-mapping')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <button class="btn btn-primary" style="margin-bottom:12px;"><i class="fa fa-plus"></i> Add New</button>
+      <table class="am-table">
+        <thead><tr><th>Account Code</th><th>Company Name</th><th>Firm Code</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>FORT001</td><td>FORTINET INC.</td><td>APEX-SFO</td><td><button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;">Edit</button></td></tr>
+          <tr><td>QUTA001</td><td>Quanta Group</td><td>APEX-LAX</td><td><button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;">Edit</button></td></tr>
+          <tr><td>ASUS001</td><td>ASUS GROUP</td><td>APEX-LAX</td><td><button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;">Edit</button></td></tr>
+          <tr><td>MSFT001</td><td>MICROSOFT CORP</td><td>APEX-SEA</td><td><button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;">Edit</button></td></tr>
+          <tr><td>APPL001</td><td>APPLE INC.</td><td>APEX-SFO</td><td><button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;">Edit</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-foot"><button class="btn btn-secondary" onclick="closeModal('modal-account-mapping')">Close</button></div>
+  </div>
+</div>
+
+<!-- 6. Get SC Job -->
+<div class="modal-overlay" id="modal-get-sc-job">
+  <div class="modal">
+    <div class="modal-hdr"><h3>Get SC Job</h3><button class="modal-close" onclick="closeModal('modal-get-sc-job')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>M#</label><input type="text" placeholder="Master AWB number"></div>
+      <div class="form-row"><label>H#</label><input type="text" placeholder="House AWB number"></div>
+      <div class="form-row"><label>Firm Code</label><select id="sc-firm-sel"><option value="">-- Select --</option></select></div>
+      <div id="sc-results" style="margin-top:14px;display:none;">
+        <table class="am-table"><thead><tr><th>SC Job No</th><th>Status</th><th>M#</th><th>H#</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('modal-get-sc-job')">Cancel</button>
+      <button class="btn btn-primary" onclick="scSearch()">Search</button>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Batch Update -->
+<div class="modal-overlay" id="modal-batch-update">
+  <div class="modal">
+    <div class="modal-hdr"><h3>Batch Update</h3><button class="modal-close" onclick="closeModal('modal-batch-update')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Status</label><select style="flex:1;border:1px solid var(--border);border-radius:4px;padding:6px 9px;font-size:12px;font-family:inherit;"><option>New</option><option>In Processing</option><option>Completed</option></select></div>
+      <div class="form-row"><label>OP Remarks</label><input type="text" style="flex:1;border:1px solid var(--border);border-radius:4px;padding:6px 9px;font-size:12px;font-family:inherit;" placeholder="Remarks..."></div>
+      <div class="form-row"><label>SC Job Status</label><select style="flex:1;border:1px solid var(--border);border-radius:4px;padding:6px 9px;font-size:12px;font-family:inherit;"><option>All</option><option>Existing</option><option>Partial</option><option>Not Existing</option></select></div>
+      <div class="form-row"><label>Operator</label><select id="bu-operator" style="flex:1;border:1px solid var(--border);border-radius:4px;padding:6px 9px;font-size:12px;font-family:inherit;"><option value="">-- Select --</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('modal-batch-update')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-batch-update')">Apply to Selected</button>
+    </div>
+  </div>
+</div>
+
+<!-- 8. Update Tags -->
+<div class="modal-overlay" id="modal-update-tags">
+  <div class="modal">
+    <div class="modal-hdr"><h3>Update Tags</h3><button class="modal-close" onclick="closeModal('modal-update-tags')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <div class="tags-grid" id="tags-checklist"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('modal-update-tags')">Add Tags</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-update-tags')">Remove Tags</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-update-tags')">Replace Tags</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-update-tags')">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- 9. Maintain Tags -->
+<div class="modal-overlay" id="modal-maintain-tags">
+  <div class="modal wide">
+    <div class="modal-hdr"><h3>Maintain Tags</h3><button class="modal-close" onclick="closeModal('modal-maintain-tags')"><i class="fa fa-times"></i></button></div>
+    <div class="modal-body">
+      <button class="btn btn-primary" style="margin-bottom:12px;"><i class="fa fa-plus"></i> Add New Tag</button>
+      <table class="mt-table" id="mt-table">
+        <thead><tr><th>Tag Name</th><th>Sort Order</th><th>Active</th><th>Action</th></tr></thead>
+        <tbody id="mt-tbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-foot"><button class="btn btn-secondary" onclick="closeModal('modal-maintain-tags')">Close</button></div>
+  </div>
+</div>
 
 <script>
-  // ── Import Confirm data (from importConfirm.html DOM) ──
-  const icPendingData = [
-    { status:'New',           abiStatus:'Yes',  abiMatch:'Yes',         tags:'',    uld:'WBU1',  customer:'FORTINET INC.',        mno:'BR0028', hno:'HANQAN000705',   eta:'2026-07-31 20:35', pol:'TPE', pod:'SFO', airline:'BR', firm:'',   flight:'BR016',  destHO:'APEX-LAX, APEX-SFO', destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-07-31 13:40', wt:0,    scStatus:'',    opRem:'1F SENT,PENDING ISC', scJob:'',             preAlert:'2026-08-01 07:20', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-07-31 09:26', qUpdate:'2026-07-30 10:15', operator:'ASIF.HASAN-SFO' },
-    { status:'New',           abiStatus:'Yes',  abiMatch:'Not Existing', tags:'',    uld:'',      customer:'Quanta Group',         mno:'BR0008', hno:'HNAE26070469',   eta:'2026-08-02 12:00', pol:'CKG', pod:'SFO', airline:'CI', firm:'CI', flight:'CI5346', destHO:'APEX-LAX',             destGW:'APEX-LAX', addr:'2805 W EL SEGUNDO BLVD, HAWTHORNE, CA 90250', lfd:'2026-07-31 19:00', wt:0,    scStatus:'',    opRem:'',                    scJob:'AECKG2600202',  preAlert:'2026-08-02 12:00', destCs:'TASHIK.AHMED',   ovsAgent:'NO', qSend:'2026-07-31 09:41', qUpdate:'2026-07-31 05:23', operator:'TASHIK.AHMED' },
-    { status:'In Processing', abiStatus:'No',   abiMatch:'Not Existing', tags:'',    uld:'WBM6',  customer:'ASUS GROUP',           mno:'BR016',  hno:'AEBKK2601759',   eta:'2026-08-02 21:30', pol:'BKK', pod:'LAX', airline:'BR', firm:'',   flight:'WBM6',   destHO:'APEX-LAX',             destGW:'APEX-LAX', addr:'2805 W EL SEGUNDO BLVD, HAWTHORNE, CA 90250', lfd:'2026-07-31 09:41', wt:0,    scStatus:'',    opRem:'1F SENT,ISC SS',      scJob:'',             preAlert:'2026-08-02 21:30', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-07-31 05:23', qUpdate:'2026-07-30 21:05', operator:'KARINA.TORRES' },
-    { status:'New',           abiStatus:'No',   abiMatch:'Not Existing', tags:'',    uld:'',      customer:'ALO LLC, On AG',       mno:'O282',   hno:'VNAE20261908',   eta:'2026-08-01 06:50', pol:'SGN', pod:'MIA', airline:'UA', firm:'CI', flight:'UA0852', destHO:'APEX-MIA',             destGW:'APEX-MIA', addr:'1350 NW 129TH AVE, SUITE 400',                lfd:'2026-08-01 06:50', wt:0,    scStatus:'',    opRem:'BILL NOT ON FILE',    scJob:'',             preAlert:'2026-08-01 06:50', destCs:'LESLY.MARTINEZ', ovsAgent:'NO', qSend:'2026-07-31 04:30', qUpdate:'2026-07-31 05:10', operator:'LESLY.MARTINEZ' },
-    { status:'New',           abiStatus:'Yes',  abiMatch:'Yes',         tags:'',    uld:'',      customer:'ACER AMERICA CORP',    mno:'CI5382', hno:'PVGAE2607100',   eta:'2026-07-31 17:30', pol:'PVG', pod:'SFO', airline:'CZ', firm:'CI', flight:'CZ2509', destHO:'APEX-SFO',             destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-07-31 04:56', wt:0,    scStatus:'',    opRem:'',                    scJob:'PVGAE2607100',  preAlert:'2026-07-31 17:30', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-07-31 10:00', qUpdate:'2026-07-31 05:30', operator:'KARINA.TORRES' },
-    { status:'New',           abiStatus:'Yes',  abiMatch:'Existing',    tags:'',    uld:'',      customer:'Quanta Group',         mno:'CI5346', hno:'CKGAE2607111',   eta:'2026-08-02 18:00', pol:'CKG', pod:'SFO', airline:'CI', firm:'CI', flight:'CI5346', destHO:'APEX-LAX, APEX-SFO',   destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-07-31 04:56', wt:0,    scStatus:'',    opRem:'',                    scJob:'',             preAlert:'2026-08-02 18:00', destCs:'TASHIK.AHMED',   ovsAgent:'YES',qSend:'2026-07-31 07:00', qUpdate:'2026-07-31 02:45', operator:'TASHIK.AHMED' },
-    { status:'New',           abiStatus:'No',   abiMatch:'Not Existing', tags:'',    uld:'',      customer:'FORTINET INC.',        mno:'BR0028', hno:'PVGAE2607103',   eta:'2026-07-31 07:00', pol:'PVG', pod:'SFO', airline:'CZ', firm:'',   flight:'CZ2509', destHO:'APEX-SFO',             destGW:'APEX-SFO', addr:'425 HESTER STREET',                         lfd:'2026-08-02 12:00', wt:0,    scStatus:'',    opRem:'',                    scJob:'PVGAE2607103',  preAlert:'2026-07-31 17:30', destCs:'KARINA.TORRES',  ovsAgent:'NO', qSend:'2026-08-01 07:20', qUpdate:'2026-07-31 09:26', operator:'ASIF.HASAN-SFO' },
-    { status:'In Processing', abiStatus:'Yes',  abiMatch:'Yes',         tags:'',    uld:'BR0028',customer:'ASUS GROUP',           mno:'BR016',  hno:'AECKG2607111',   eta:'2026-08-02 18:00', pol:'CKG', pod:'LAX', airline:'BR', firm:'CI', flight:'BR016',  destHO:'APEX-LAX',             destGW:'APEX-LAX', addr:'2805 W EL SEGUNDO BLVD, HAWTHORNE, CA 90250', lfd:'2026-07-31 19:00', wt:0,    scStatus:'',    opRem:'1F SENT,ISC SS',      scJob:'CKGAE2607112',  preAlert:'2026-08-02 18:00', destCs:'TASHIK.AHMED',   ovsAgent:'NO', qSend:'2026-07-31 09:41', qUpdate:'2026-07-31 05:23', operator:'TASHIK.AHMED' },
-  ];
+// ===================== DATA =====================
+const FIRM_CODES = ['APEX-SEA','XQW-SHANGHAI','APEX-LAX','APEX-CGO','GSH-CHONGQING','GSH-CHENGDU','APEX-HKG','APEX-ORD','APEX-DFW','APEX-JFK','APEX-SFO','OEMS','APEX-USA','APEX-SZX','APEX-MIA','APEX-YYZ','APEX-NETHERLANDS','APEX-WUHAN','APEX-TPE','APEX-GERMANY','APEX-Vietnam','APEX-ECM','GSH-QINGDAO','GSH-SHANGHAI','AGENT-PNH','AGENT-RGN','APEX-Singapore','APEX-ICN','APEX-MEL','APEX-MEX','APEX-XMN','APEX-SHANGHAI','GSH-BEIJING','JP-ECMS','GSH-TIANJIN','APEX-NINGBO','AGENT-APS','PEN-Worldgate','KUL-Worldgate','OSL-Bjorn','NRT-Apex','KIX-Apex','MXP-Sebi','APEX-LCK','APEX-NA','SINO-THAILAND','APEX-CAN','APEX-HANGZHOU','APEX-HKVN','GSH-NANJING','APEX-JPN','SINPEX-HKG','SINPEX-NIN','SINPEX-NKG','SINPEX-SHA','SINPEX-SZX','SINPEX-TAO','SINPEX-TSN','SINPEX-XMN','SINPEX-ZSN','APEX-SCM','SINPEX-HCM','APEX-YVR','AGENT-APSBD-DAC','GSH-XIAN','XQW-WUXI','APEX-BKK','APEX-MAA','APEX-SGP','APEX-PEN','GSH-PVG','APEX-SGMY','APEX-HKMY','SINPEX-HAN','AGENT-APSSL-CMB','APEX-ELP','APEX-LRD','APEX-EHU','APEX-HKIN','APEX-TWN','APEX-SGIN','SINPEX-BKK','SINPEX-MYS','APEX-IDN','PERI-LAX','PERI-SFO','APEX-BELGIUM'];
 
-  const icListData = [
-    ...icPendingData,
-    { status:'New', abiStatus:'Yes', abiMatch:'Yes', tags:'', uld:'', customer:'Apple Inc.', mno:'UA857', hno:'SFOUS2607001', eta:'2026-08-03 06:35', pol:'TPE', pod:'SFO', airline:'UA', firm:'', flight:'UA857', destHO:'APEX-SFO', destGW:'APEX-SFO', addr:'1 Infinite Loop, Cupertino CA', lfd:'2026-08-03 06:35', wt:823, scStatus:'Confirmed', opRem:'', scJob:'SFOUS2607001', preAlert:'2026-08-02 22:10', destCs:'ASIF.HASAN', ovsAgent:'NO', qSend:'2026-07-31 22:10', qUpdate:'2026-08-01 06:35', operator:'ASIF.HASAN-SFO' },
-    { status:'In Processing', abiStatus:'Yes', abiMatch:'Existing', tags:'', uld:'', customer:'Tesla Motors', mno:'CX888', hno:'PVGUS2607002', eta:'2026-08-03 14:20', pol:'PVG', pod:'LAX', airline:'CX', firm:'CI', flight:'CX888', destHO:'APEX-LAX', destGW:'APEX-LAX', addr:'3500 Deer Creek Rd, Palo Alto CA', lfd:'2026-08-03 14:20', wt:154, scStatus:'Partial', opRem:'PENDING ISC', scJob:'', preAlert:'2026-08-03 14:20', destCs:'KARINA.TORRES', ovsAgent:'NO', qSend:'2026-07-31 23:45', qUpdate:'2026-08-01 14:20', operator:'KARINA.TORRES' },
-  ];
+const OPERATORS = ['appadmin','WUXIAOTAO','MAZHIWEN','KARINA.TORRES','TASHIK.AHMED','ASIF.HASAN','ASIF.HASAN-SFO','GRACE.MAESHIRO','JESSIE.CHEN','PHILLIP.LAI','ZECHUN.LIU','LESLY.MARTINEZ','MARCOWONG','HENRY.CHAN','LINDA.WU','KEVIN.ZHANG','SARAH.LIM','JAMES.KO','ANNA.LEE','RAYMOND.NG','CYNTHIA.CHAN','DAVID.HSU','EMILY.CHEN','FRANK.LIU','GLORIA.WANG','IVAN.TAN','JULIA.PARK','KENNETH.YEE','LISA.HUANG','MICHAEL.CHEN'];
 
-  const icAbiData = icPendingData.map(r => ({
-    hno: r.hno, mno: r.mno, customer: r.customer, pol: r.pol, pod: r.pod,
-    eta: r.eta, flight: r.flight, abiStatus: r.abiStatus, abiMatch: r.abiMatch,
-    qSend: r.qSend, qUpdate: r.qUpdate, operator: r.operator
-  }));
+const ALL_TAGS = ['12 REQ SENT','1C DOCS COMPLETE','1C RECOVERY','1D posted','1F SENT','AMS ISSUE','AMS issue.','COMPLETE SPLIT WT SENT+SS','HOT SHIPMENT','ISC PAID','ISC SS','IT ANC','IT HNL','IT LAS','IT ONT','IT SEA','IT SFO','IT SLC','IT- NEED 12','KN EU SHIPMENT','Missing Dest Sales/Office','NEED ATME+DO+ACE','NOT 1F','PARTIAL 12 REQ SENT','PARTIAL WT+SS SENT','Pending Alert Date.','Pending Documents','PENDING ISC','Pending Pre-Alert Date.','SPLIT','urgent','WT SENT+SS','WT SPLIT'];
 
-  const statusBadgeMap = {
-    'New':           'badge-blue',
-    'In Processing': 'badge-orange',
-    'Confirmed':     'badge-green',
-    'Partial':       'badge-purple',
-  };
-  const abiBadgeMap = {
-    'Yes':         'badge-green',
-    'No':          'badge-gray',
-    'Existing':    'badge-green',
-    'Not Existing':'badge-red',
-  };
+const COL_NAMES = ['Status','ABI Query Status','ABI Query Match','ULD#','HAWB Customer / Account Code / CID / GID','M#','H#','ETA','POL','POD','Firm Code','Flight No','Address','Last Free Date','WT','SC Job Status','OP Remarks','SC JOB No','Pre-Alert Date','IsOvsAgent','Query Send Date','Query Update Date','Operator'];
 
-  function icRow(r) {
-    return `<tr>
-      <td><input type="checkbox" class="row-check"></td>
-      <td><span class="badge ${statusBadgeMap[r.status]||'badge-gray'}">${r.status}</span></td>
-      <td><span class="badge ${abiBadgeMap[r.abiStatus]||'badge-gray'}">${r.abiStatus}</span></td>
-      <td><span class="badge ${abiBadgeMap[r.abiMatch]||'badge-gray'}">${r.abiMatch}</span></td>
-      <td>${r.tags||'—'}</td>
-      <td>${r.uld||'—'}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.customer}</td>
-      <td><a onclick="event.preventDefault()">${r.mno}</a></td>
-      <td><a onclick="event.preventDefault()">${r.hno}</a></td>
-      <td>${r.eta}</td>
-      <td>${r.pol}</td>
-      <td>${r.pod}</td>
-      <td>${r.airline}</td>
-      <td>${r.firm||'—'}</td>
-      <td>${r.flight}</td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${r.destHO}</td>
-      <td>${r.destGW}</td>
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.addr}</td>
-      <td>${r.lfd}</td>
-      <td>${r.wt||'—'}</td>
-      <td>${r.scStatus||'—'}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.opRem||'—'}</td>
-      <td>${r.scJob||'—'}</td>
-      <td>${r.preAlert}</td>
-      <td>${r.destCs}</td>
-      <td>${r.ovsAgent}</td>
-      <td>${r.qSend}</td>
-      <td>${r.qUpdate}</td>
-      <td>${r.operator}</td>
-    </tr>`;
-  }
+const IC_PENDING_DATA = [
+  {status:'New',abiStatus:'In Processing',abiMatch:'Not Existing',uld:'WBU1',customer:'FORTINET INC.',mno:'BR0028',hno:'HANQAN000705',eta:'2026-07-31 20:35',pol:'TPE',pod:'SFO',firm:'APEX-SFO',flight:'BR016',addr:'425 HESTER ST SAN FRANCISCO CA 94105',lfd:'2026-07-31 13:40',wt:'No',scStatus:'Not Existing',opRem:'1F SENT,PENDING ISC',scJob:'',preAlert:'2026-08-01 07:20',isOvs:'NO',qSend:'2026-07-31 09:26',qUpdate:'2026-07-30 10:15',operator:'KARINA.TORRES',tags:'PENDING ISC'},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'Quanta Group',mno:'BR0008',hno:'HNAE26070469',eta:'2026-08-02 12:00',pol:'CKG',pod:'SFO',firm:'APEX-LAX',flight:'CI5346',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA 90250',lfd:'2026-07-31 19:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-02 12:00',isOvs:'NO',qSend:'2026-07-31 09:41',qUpdate:'2026-07-31 05:23',operator:'TASHIK.AHMED',tags:'1F SENT'},
+  {status:'In Processing',abiStatus:'In Processing',abiMatch:'Not Existing',uld:'WBM6',customer:'ASUS GROUP',mno:'BR016',hno:'AEBKK2601759',eta:'2026-08-02 21:30',pol:'BKK',pod:'LAX',firm:'APEX-LAX',flight:'WBM6',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-03 09:00',wt:'No',scStatus:'Not Existing',opRem:'1F SENT,ISC SS',scJob:'',preAlert:'2026-08-02 21:30',isOvs:'NO',qSend:'2026-07-31 05:23',qUpdate:'2026-07-30 21:05',operator:'KARINA.TORRES',tags:'1F SENT, ISC SS'},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'ALO LLC',mno:'O282',hno:'VNAE20261908',eta:'2026-08-01 06:50',pol:'SGN',pod:'MIA',firm:'APEX-MIA',flight:'UA0852',addr:'1350 NW 129TH AVE SUITE 400 MIAMI FL 33182',lfd:'2026-08-01 19:00',wt:'No',scStatus:'Not Existing',opRem:'BILL NOT ON FILE',scJob:'',preAlert:'2026-08-01 06:50',isOvs:'NO',qSend:'2026-07-31 04:30',qUpdate:'2026-07-31 05:10',operator:'LESLY.MARTINEZ',tags:''},
+  {status:'New',abiStatus:'In Processing',abiMatch:'Yes',uld:'',customer:'ACER AMERICA CORPORATION',mno:'CI5382',hno:'PVGAE2607100',eta:'2026-07-31 17:30',pol:'PVG',pod:'SFO',firm:'APEX-SFO',flight:'CZ2509',addr:'425 HESTER ST SAN FRANCISCO CA 94105',lfd:'2026-07-31 04:56',wt:'No',scStatus:'Existing',opRem:'',scJob:'PVGAE2607100',preAlert:'2026-07-31 17:30',isOvs:'NO',qSend:'2026-07-31 10:00',qUpdate:'2026-07-31 05:30',operator:'KARINA.TORRES',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Yes',uld:'',customer:'Quanta Group',mno:'CI5346',hno:'CKGAE2607111',eta:'2026-08-02 18:00',pol:'CKG',pod:'SFO',firm:'APEX-SFO',flight:'CI5346',addr:'425 HESTER ST SAN FRANCISCO CA 94105',lfd:'2026-08-03 04:56',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-02 18:00',isOvs:'YES',qSend:'2026-07-31 07:00',qUpdate:'2026-07-31 02:45',operator:'TASHIK.AHMED',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'FORTINET INC.',mno:'CZ2509',hno:'PVGAE2607103',eta:'2026-07-31 07:00',pol:'PVG',pod:'SFO',firm:'APEX-SFO',flight:'CZ2509',addr:'425 HESTER ST SAN FRANCISCO CA',lfd:'2026-08-01 07:00',wt:'No',scStatus:'Existing',opRem:'',scJob:'PVGAE2607103',preAlert:'2026-07-31 17:30',isOvs:'NO',qSend:'2026-08-01 07:20',qUpdate:'2026-07-31 09:26',operator:'ASIF.HASAN-SFO',tags:''},
+  {status:'In Processing',abiStatus:'In Processing',abiMatch:'Not Existing',uld:'BR0028',customer:'ASUS GROUP',mno:'BR016',hno:'CKGAE2607112',eta:'2026-08-02 18:00',pol:'CKG',pod:'LAX',firm:'APEX-LAX',flight:'BR016',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-03 19:00',wt:'No',scStatus:'Not Existing',opRem:'1F SENT,ISC SS',scJob:'CKGAE2607112',preAlert:'2026-08-02 18:00',isOvs:'NO',qSend:'2026-07-31 09:41',qUpdate:'2026-07-31 05:23',operator:'TASHIK.AHMED',tags:'1F SENT, ISC SS'},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'MICROSOFT CORP',mno:'CZ2509',hno:'PVGAE2607104',eta:'2026-08-01 10:00',pol:'PVG',pod:'SEA',firm:'APEX-SEA',flight:'CZ2509',addr:'1 MICROSOFT WAY REDMOND WA 98052',lfd:'2026-08-02 10:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-01 10:00',isOvs:'NO',qSend:'2026-07-31 08:00',qUpdate:'2026-07-31 06:00',operator:'JESSIE.CHEN',tags:'1F SENT'},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'APPLE INC.',mno:'UA857',hno:'HANQAN000706',eta:'2026-08-01 22:00',pol:'HAN',pod:'SFO',firm:'APEX-SFO',flight:'UA857',addr:'1 INFINITE LOOP CUPERTINO CA 95014',lfd:'2026-08-02 22:00',wt:'No',scStatus:'Not Existing',opRem:'HOT SHIPMENT',scJob:'',preAlert:'2026-08-01 22:00',isOvs:'NO',qSend:'2026-07-31 11:00',qUpdate:'2026-07-31 09:00',operator:'GRACE.MAESHIRO',tags:'HOT SHIPMENT'},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'SAMSUNG ELECTRONICS',mno:'KE5',hno:'BNAE26070001',eta:'2026-08-03 14:00',pol:'ICN',pod:'LAX',firm:'APEX-LAX',flight:'KE5',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-04 14:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-03 14:00',isOvs:'NO',qSend:'2026-08-01 08:00',qUpdate:'2026-08-01 06:00',operator:'PHILLIP.LAI',tags:''},
+  {status:'New',abiStatus:'Not Available',abiMatch:'No',uld:'',customer:'LENOVO',mno:'CZ2508',hno:'PVGAE2607102',eta:'2026-08-02 08:00',pol:'PVG',pod:'ORD',firm:'APEX-ORD',flight:'CZ2508',addr:'1009 THINK PL MORRISVILLE NC 27560',lfd:'2026-08-03 08:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-02 08:00',isOvs:'NO',qSend:'2026-07-31 12:00',qUpdate:'2026-07-31 10:00',operator:'ZECHUN.LIU',tags:''},
+  {status:'In Processing',abiStatus:'In Processing',abiMatch:'Not Existing',uld:'',customer:'HP INC.',mno:'BR016',hno:'TPEUS2607001',eta:'2026-07-31 20:00',pol:'TPE',pod:'SFO',firm:'APEX-SFO',flight:'BR016',addr:'1501 PAGE MILL RD PALO ALTO CA 94304',lfd:'2026-07-31 20:00',wt:'Yes',scStatus:'Existing',opRem:'WT SENT+SS',scJob:'TPEUS2607001',preAlert:'2026-07-31 20:00',isOvs:'NO',qSend:'2026-07-31 06:00',qUpdate:'2026-07-30 22:00',operator:'KARINA.TORRES',tags:'WT SENT+SS'},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'DELL TECHNOLOGIES',mno:'TG679',hno:'BKKAE2607001',eta:'2026-08-02 09:00',pol:'BKK',pod:'LAX',firm:'APEX-LAX',flight:'TG679',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-03 09:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-02 09:00',isOvs:'NO',qSend:'2026-07-31 07:30',qUpdate:'2026-07-31 05:30',operator:'KARINA.TORRES',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'ASUS GROUP',mno:'CI5346',hno:'CKGAE2607113',eta:'2026-08-02 18:00',pol:'CKG',pod:'SFO',firm:'APEX-SFO',flight:'CI5346',addr:'425 HESTER ST SAN FRANCISCO CA',lfd:'2026-08-03 18:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-02 18:00',isOvs:'NO',qSend:'2026-07-31 09:41',qUpdate:'2026-07-31 05:23',operator:'TASHIK.AHMED',tags:''},
+  {status:'New',abiStatus:'In Processing',abiMatch:'Yes',uld:'',customer:'RAZER INC.',mno:'SQ322',hno:'SGNUS2607001',eta:'2026-08-01 15:00',pol:'SIN',pod:'SFO',firm:'APEX-SFO',flight:'SQ322',addr:'425 HESTER ST SAN FRANCISCO CA',lfd:'2026-08-02 15:00',wt:'No',scStatus:'Existing',opRem:'',scJob:'SGNUS2607001',preAlert:'2026-08-01 15:00',isOvs:'YES',qSend:'2026-07-31 09:00',qUpdate:'2026-07-31 07:00',operator:'ASIF.HASAN-SFO',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'XIAOMI CORP',mno:'MU717',hno:'PVGAE2607104',eta:'2026-08-03 06:00',pol:'PVG',pod:'LAX',firm:'APEX-LAX',flight:'MU717',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-04 06:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-03 06:00',isOvs:'NO',qSend:'2026-08-01 05:00',qUpdate:'2026-08-01 03:00',operator:'ZECHUN.LIU',tags:''},
+  {status:'In Processing',abiStatus:'Received',abiMatch:'Yes',uld:'',customer:'HUAWEI TECHNOLOGIES',mno:'CX803',hno:'HKGUS2607001',eta:'2026-07-31 18:00',pol:'HKG',pod:'SFO',firm:'APEX-SFO',flight:'CX803',addr:'425 HESTER ST SAN FRANCISCO CA',lfd:'2026-07-31 18:00',wt:'Yes',scStatus:'Existing',opRem:'1C DOCS COMPLETE',scJob:'HKGUS2607001',preAlert:'2026-07-31 18:00',isOvs:'YES',qSend:'2026-07-30 10:00',qUpdate:'2026-07-30 08:00',operator:'MARCOWONG',tags:'1C DOCS COMPLETE'},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'LG ELECTRONICS',mno:'OZ204',hno:'INCHAE2607001',eta:'2026-08-03 11:00',pol:'ICN',pod:'LAX',firm:'APEX-LAX',flight:'OZ204',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-04 11:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-03 11:00',isOvs:'NO',qSend:'2026-08-01 07:00',qUpdate:'2026-08-01 05:00',operator:'PHILLIP.LAI',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'ACER INC.',mno:'CI913',hno:'TPEAE2607001',eta:'2026-08-01 19:00',pol:'TPE',pod:'SFO',firm:'APEX-SFO',flight:'CI913',addr:'425 HESTER ST SAN FRANCISCO CA',lfd:'2026-08-02 19:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-01 19:00',isOvs:'NO',qSend:'2026-07-31 10:30',qUpdate:'2026-07-31 08:30',operator:'KARINA.TORRES',tags:''},
+  {status:'New',abiStatus:'Not Available',abiMatch:'No',uld:'',customer:'ZTE CORP',mno:'CA849',hno:'PVGAE2607105',eta:'2026-08-04 14:00',pol:'PVG',pod:'JFK',firm:'APEX-JFK',flight:'CA849',addr:'900 CHELMSFORD ST LOWELL MA 01851',lfd:'2026-08-05 14:00',wt:'No',scStatus:'Not Existing',opRem:'BILL NOT ON FILE',scJob:'',preAlert:'2026-08-04 14:00',isOvs:'NO',qSend:'2026-08-02 08:00',qUpdate:'2026-08-02 06:00',operator:'JESSIE.CHEN',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'OPPO MOBILE',mno:'CZ3101',hno:'CKGAE2607114',eta:'2026-08-03 20:00',pol:'CKG',pod:'LAX',firm:'APEX-LAX',flight:'CZ3101',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-04 20:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-03 20:00',isOvs:'NO',qSend:'2026-08-01 09:00',qUpdate:'2026-08-01 07:00',operator:'ZECHUN.LIU',tags:''},
+  {status:'In Processing',abiStatus:'In Processing',abiMatch:'Not Existing',uld:'',customer:'VINFAST',mno:'VN73',hno:'HANUS2607001',eta:'2026-08-01 08:00',pol:'HAN',pod:'LAX',firm:'APEX-LAX',flight:'VN73',addr:'2805 W EL SEGUNDO BLVD HAWTHORNE CA',lfd:'2026-08-02 08:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-01 08:00',isOvs:'NO',qSend:'2026-07-31 06:00',qUpdate:'2026-07-31 04:00',operator:'LESLY.MARTINEZ',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'VIVO MOBILE',mno:'MU575',hno:'PVGAE2607106',eta:'2026-08-04 08:00',pol:'PVG',pod:'SFO',firm:'APEX-SFO',flight:'MU575',addr:'425 HESTER ST SAN FRANCISCO CA',lfd:'2026-08-05 08:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-04 08:00',isOvs:'NO',qSend:'2026-08-02 06:00',qUpdate:'2026-08-02 04:00',operator:'ZECHUN.LIU',tags:''},
+  {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'QUANTA COMPUTER INC.',mno:'BR012',hno:'TPEAE2607002',eta:'2026-08-02 20:00',pol:'TPE',pod:'ORD',firm:'APEX-ORD',flight:'BR012',addr:'1009 THINK PL MORRISVILLE NC 27560',lfd:'2026-08-03 20:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-02 20:00',isOvs:'NO',qSend:'2026-07-31 11:00',qUpdate:'2026-07-31 09:00',operator:'KARINA.TORRES',tags:''}
+];
 
-  function buildIcTables() {
-    document.getElementById('icPendingBody').innerHTML = icPendingData.map(icRow).join('');
-    document.getElementById('icListBody').innerHTML   = icListData.map(icRow).join('');
-    document.getElementById('icAbiBody').innerHTML    = icAbiData.map(r => `<tr>
-      <td><input type="checkbox"></td>
-      <td><a onclick="event.preventDefault()">${r.hno}</a></td>
-      <td><a onclick="event.preventDefault()">${r.mno}</a></td>
-      <td>${r.customer}</td>
-      <td>${r.pol}</td><td>${r.pod}</td><td>${r.eta}</td><td>${r.flight}</td>
-      <td><span class="badge ${abiBadgeMap[r.abiStatus]||'badge-gray'}">${r.abiStatus}</span></td>
-      <td><span class="badge ${abiBadgeMap[r.abiMatch]||'badge-gray'}">${r.abiMatch}</span></td>
-      <td>${r.qSend}</td><td>${r.qUpdate}</td><td>${r.operator}</td>
-    </tr>`).join('');
-  }
+const PLACEHOLDER_PAGES = {
+  2:{icon:'fa-tachometer-alt',name:'Update ATD&ATA'},
+  3:{icon:'fa-list',name:'DN List'},4:{icon:'fa-map-marker-alt',name:'Delivery Address Confirmation'},
+  5:{icon:'fa-globe',name:'Global IWT'},6:{icon:'fa-check',name:'OP-AMS Confirm'},
+  7:{icon:'fa-file-alt',name:'Confirm Pre-DO'},8:{icon:'fa-box',name:'Packing List'},
+  9:{icon:'fa-truck',name:'Dispatch-WT'},10:{icon:'fa-file-invoice',name:'Dispatch-DO'},
+  11:{icon:'fa-file-export',name:'CS-Document To Broker'},12:{icon:'fa-passport',name:'Custom Admission/Release'},
+  13:{icon:'fa-lock',name:'Create Hold'},14:{icon:'fa-search',name:'ABI Query'},
+  15:{icon:'fa-plus-circle',name:'New Import Job'},
+  17:{icon:'fa-table',name:'xdoc management'},18:{icon:'fa-cloud',name:'Shipment List'},
+  19:{icon:'fa-file-invoice-dollar',name:'Invoice Details'},20:{icon:'fa-exchange-alt',name:'ImportConversion'},
+  21:{icon:'fa-dollar-sign',name:'Price Setting'},22:{icon:'fa-cog',name:'Auto Setting'},
+  23:{icon:'fa-calendar-week',name:'WeekSetting'},24:{icon:'fa-route',name:'OriDestRate'},
+  25:{icon:'fa-comment',name:'LenovoRemark'},26:{icon:'fa-chart-bar',name:'NCC_MSFT Report'},
+  27:{icon:'fa-chart-line',name:'MSFT Report'},28:{icon:'fa-list-ol',name:'ChargeList'},
+  29:{icon:'fa-handshake',name:'Internal Settlement Management'},30:{icon:'fa-code-branch',name:'Charge Code Mapping'},
+  31:{icon:'fa-exclamation-circle',name:'Exception ShipmentLists'},32:{icon:'fa-handshake',name:'Internal Settlement Management(US)'},
+  33:{icon:'fa-tag',name:'Charge Code'},34:{icon:'fa-ship',name:'BShipmentList'},
+  35:{icon:'fa-file-alt',name:'Invoice List'},36:{icon:'fa-exclamation-triangle',name:'214 Exception Management'},
+  37:{icon:'fa-list',name:'Operation Log'},38:{icon:'fa-chart-bar',name:'ASUS Tracking Report'},
+  39:{icon:'fa-tachometer-alt',name:'BillingCW Monitor'},40:{icon:'fa-plane',name:'EDI 214 Status Report-Air'},
+  41:{icon:'fa-truck',name:'EDI 214 Status Report-Truck'},42:{icon:'fa-chart-pie',name:'GAP General Report'},
+  43:{icon:'fa-car',name:'NCC_Tesla Billing Status'},44:{icon:'fa-car',name:'Tesla Billing Status'},
+  45:{icon:'fa-chart-line',name:'TMS_adoption_report'},46:{icon:'fa-plane',name:'Air Event Management'},
+  47:{icon:'fa-tag',name:'Air Event Label Default'},48:{icon:'fa-history',name:'Air Event Log'},
+  49:{icon:'fa-truck',name:'Truck Milestone Management'},50:{icon:'fa-robot',name:'SHEIN AI Milestone'},
+  51:{icon:'fa-code',name:'Charge code management'},52:{icon:'fa-users',name:'bAccounts'},
+  53:{icon:'fa-warehouse',name:'Warehouse In'},54:{icon:'fa-object-group',name:'Segregation'},
+  55:{icon:'fa-warehouse',name:'Warehouse Out'},56:{icon:'fa-cubes',name:'Consolidation'},
+  57:{icon:'fa-search',name:'Customs Exam'},58:{icon:'fa-exclamation',name:'Exception Handling'}
+};
 
-  function switchIcTab(el, paneId) {
-    document.querySelectorAll('.ic-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.ic-pane').forEach(p => p.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById(paneId).classList.add('active');
-  }
+// ===================== TABS =====================
+let tabs = [{id:'home',name:'Home'}];
+let activeTab = 'home';
 
-  function icBatchConfirm() {
-    document.querySelectorAll('#icPendingBody .row-check:checked').forEach(cb => {
-      const row = cb.closest('tr');
-      row.cells[1].innerHTML = '<span class="badge badge-green">Confirmed</span>';
-    });
-  }
-
-  function icClearSearch() {
-    document.querySelectorAll('#panel-import-confirm input[type="text"], #panel-import-confirm select').forEach(el => el.value = '');
-  }
-
-  function toggleAllCheck(cb, cls) {
-    const scope = cls ? document.querySelectorAll('.' + cls) : document.querySelectorAll('.row-check');
-    scope.forEach(c => c.checked = cb.checked);
-  }
-
-  // ── ATA form ──
-  const flightDB = {
-    'SFO240701-001': { hawb:'SFO240701-001', flight:'UA857', ori:'SFO', dst:'TPE', mawb:'016-12345001', carrier:'United Airlines (UA)', pcs:48, wt:823, cwt:823, commodity:'Electronics' },
-    'UA857': { hawb:'SFO240701-001', flight:'UA857', ori:'SFO', dst:'TPE', mawb:'016-12345001', carrier:'United Airlines (UA)', pcs:48, wt:823, cwt:823, commodity:'Electronics' },
-    'XC-2024-08835': { hawb:'SFO240701-002', flight:'CX888', ori:'LAX', dst:'PVG', mawb:'016-12345002', carrier:'Cathay Pacific (CX)', pcs:12, wt:154, cwt:200, commodity:'Auto Parts' },
-  };
-
-  function searchFlight() {
-    const q = document.getElementById('ataSearch').value.trim().toUpperCase();
-    const match = flightDB[q] || Object.values(flightDB).find(d =>
-      d.hawb.toUpperCase().includes(q) || d.flight.toUpperCase().includes(q) || d.mawb.includes(q)
-    );
-    if (match) {
-      document.getElementById('f_hawb').value = match.hawb;
-      document.getElementById('f_flight').value = match.flight;
-      document.getElementById('f_origin').value = match.ori;
-      document.getElementById('f_dest').value = match.dst;
-      document.getElementById('f_mawb').value = match.mawb;
-      document.getElementById('f_carrier').value = match.carrier;
-      document.getElementById('f_pcs').value = match.pcs;
-      document.getElementById('f_wt').value = match.wt;
-      document.getElementById('f_cwt').value = match.cwt;
-      document.getElementById('f_commodity').value = match.commodity;
-
-      const res = document.getElementById('ataSearchResult');
-      document.getElementById('ataResultFields').innerHTML = `
-        <div class="search-card-field"><span class="lbl">HAWB</span><span class="val">${match.hawb}</span></div>
-        <div class="search-card-field"><span class="lbl">Flight</span><span class="val">${match.flight}</span></div>
-        <div class="search-card-field"><span class="lbl">Route</span><span class="val">${match.ori} → ${match.dst}</span></div>
-        <div class="search-card-field"><span class="lbl">MAWB</span><span class="val">${match.mawb}</span></div>
-        <div class="search-card-field"><span class="lbl">Carrier</span><span class="val">${match.carrier}</span></div>
-        <div class="search-card-field"><span class="lbl">Pieces</span><span class="val">${match.pcs}</span></div>
-        <div class="search-card-field"><span class="lbl">Weight</span><span class="val">${match.wt} kg</span></div>
-      `;
-      res.style.display = 'block';
-    } else if (q) {
-      document.getElementById('ataSearchResult').style.display = 'none';
-    }
-  }
-
-  function clearSearch() {
-    document.getElementById('ataSearch').value = '';
-    document.getElementById('ataSearchResult').style.display = 'none';
-    resetAtaForm();
-  }
-
-  function submitAta() {
-    const hawb = document.getElementById('f_hawb').value.trim();
-    const atd = document.getElementById('f_atd').value;
-    const ata = document.getElementById('f_ata').value;
-    if (!hawb || (!atd && !ata)) {
-      alert('Please enter at least a HAWB number and one of ATD or ATA.');
-      return;
-    }
-    const msg = document.getElementById('ataSubmitMsg');
-    msg.style.display = 'inline-flex';
-    setTimeout(() => msg.style.display = 'none', 4000);
-  }
-
-  function resetAtaForm() {
-    ['f_hawb','f_flight','f_origin','f_dest','f_mawb','f_atd','f_ata','f_remark','f_pcs','f_wt','f_cwt','f_vol','f_commodity'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    document.getElementById('f_carrier').value = '';
-  }
-
-  // ── Tab state ──
-  let tabs = [{ id: 'home', label: 'HomePage', panelId: 'panel-home' }];
-  let activeTabId = 'home';
-  let tabCounter = 0;
-
-  function renderTabs() {
-    const scroll = document.getElementById('tabsScroll');
-    scroll.innerHTML = '';
-    tabs.forEach(t => {
-      const div = document.createElement('div');
-      div.className = 'tab' + (t.id === activeTabId ? ' active' : '');
-      div.dataset.id = t.id;
-      div.innerHTML = `<span>${t.label}</span>${t.id !== 'home' ? `<button class="tab-close" onclick="closeTab(event,'${t.id}')"><i class="fa fa-xmark"></i></button>` : ''}`;
-      div.addEventListener('click', e => { if (!e.target.closest('.tab-close')) activateTab(t.id); });
-      scroll.appendChild(div);
-    });
-  }
-
-  function activateTab(id) {
-    activeTabId = id;
-    document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
-    const t = tabs.find(x => x.id === id);
-    if (t) {
-      const panel = document.getElementById(t.panelId);
-      if (panel) panel.classList.add('active');
-    }
-    renderTabs();
-  }
-
-  function navClick(el) {
-    const label = el.dataset.tab;
-    const page = el.dataset.page || null;
-    openTabByName(label, page);
-    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    el.classList.add('active');
-  }
-
-  function openTabByName(label, page) {
-    const existing = tabs.find(t => t.label === label);
-    if (existing) { activateTab(existing.id); return; }
-
-    tabCounter++;
-    const id = 'tab-' + tabCounter;
-    let panelId;
-
-    if (page === 'import-confirm') {
-      panelId = 'panel-import-confirm';
-    } else if (page === 'update-ata') {
-      panelId = 'panel-update-ata';
-    } else {
-      panelId = 'panel-dyn-' + tabCounter;
-      const panel = document.createElement('div');
-      panel.className = 'content-panel';
-      panel.id = panelId;
-      panel.innerHTML = `<div class="placeholder-panel"><i class="fa fa-compass-drafting"></i><p class="ph-title">${label}</p><p class="ph-sub">This module is available in the full Apex Workflow environment.</p></div>`;
-      document.getElementById('content').appendChild(panel);
-    }
-
-    tabs.push({ id, label, panelId });
-    activateTab(id);
-  }
-
-  function closeTab(e, id) {
-    e.stopPropagation();
-    const idx = tabs.findIndex(t => t.id === id);
-    if (idx === -1) return;
-    const t = tabs[idx];
-    if (t.panelId && !['panel-import-confirm','panel-update-ata'].includes(t.panelId)) {
-      const panel = document.getElementById(t.panelId);
-      if (panel) panel.remove();
-    }
-    tabs.splice(idx, 1);
-    if (activeTabId === id) {
-      activateTab(tabs[Math.min(idx, tabs.length - 1)].id);
-    } else { renderTabs(); }
-  }
-
-  function closeAllTabs() {
-    tabs.filter(t => t.id !== 'home').forEach(t => {
-      if (t.panelId && !['panel-import-confirm','panel-update-ata'].includes(t.panelId)) {
-        const p = document.getElementById(t.panelId); if (p) p.remove();
-      }
-    });
-    tabs = tabs.filter(t => t.id === 'home');
-    activateTab('home');
-    toggleMore();
-  }
-
-  function closeOtherTabs() {
-    tabs.filter(t => t.id !== 'home' && t.id !== activeTabId).forEach(t => {
-      if (t.panelId && !['panel-import-confirm','panel-update-ata'].includes(t.panelId)) {
-        const p = document.getElementById(t.panelId); if (p) p.remove();
-      }
-    });
-    tabs = tabs.filter(t => t.id === 'home' || t.id === activeTabId);
-    renderTabs();
-    toggleMore();
-  }
-
-  function goActiveTab() {
-    const el = document.querySelector(`.tab[data-id="${activeTabId}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-    toggleMore();
-  }
-
-  function scrollTabs(dir) {
-    document.getElementById('tabsScroll').scrollBy({ left: dir * 120, behavior: 'smooth' });
-  }
-
-  // ── Sidebar ──
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('collapsed');
-  }
-
-  function toggleNav(el) {
-    const sub = el.nextElementSibling;
-    if (!sub || !sub.classList.contains('sub-nav')) return;
-    const arrow = el.querySelector('.nav-arrow');
-    const isOpen = sub.classList.contains('open');
-    sub.classList.toggle('open', !isOpen);
-    if (arrow) arrow.classList.toggle('open', !isOpen);
-  }
-
-  // ── Dropdowns ──
-  document.getElementById('userToggle').addEventListener('click', e => {
-    e.stopPropagation();
-    document.getElementById('userDropdown').classList.toggle('open');
+function renderTabs() {
+  const strip = document.getElementById('tab-strip');
+  strip.innerHTML = '';
+  tabs.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (t.id === activeTab ? ' active' : '');
+    el.innerHTML = `<span>${t.name}</span><button class="tab-close" onclick="event.stopPropagation();closeTab('${t.id}')">&times;</button>`;
+    el.onclick = () => activateTab(t.id);
+    strip.appendChild(el);
   });
-  function toggleMore() {
-    document.getElementById('moreMenu').classList.toggle('open');
-  }
-  document.addEventListener('click', () => {
-    document.getElementById('userDropdown').classList.remove('open');
-    document.getElementById('moreMenu').classList.remove('open');
-  });
-  document.getElementById('moreMenu').addEventListener('click', e => e.stopPropagation());
+}
 
-  // ── Init ──
-  buildIcTables();
+function activateTab(id) {
+  activeTab = id;
   renderTabs();
+  showPanel(id);
+  // highlight nav
+  document.querySelectorAll('.nav-item[data-index]').forEach(el => {
+    el.classList.toggle('active', 'panel-'+el.dataset.index === id || (id==='home'&&false));
+  });
+}
+
+function openTab(id, name) {
+  const exists = tabs.find(t => t.id === id);
+  if (!exists) { tabs.push({id, name}); }
+  activateTab(id);
+  // scroll tab into view
+  setTimeout(() => {
+    const strip = document.getElementById('tab-strip');
+    const active = strip.querySelector('.tab.active');
+    if (active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+  }, 50);
+}
+
+function closeTab(id) {
+  const idx = tabs.findIndex(t => t.id === id);
+  if (idx === -1) return;
+  tabs.splice(idx, 1);
+  if (tabs.length === 0) { tabs = [{id:'home',name:'Home'}]; activeTab='home'; }
+  else if (activeTab === id) { activeTab = tabs[Math.min(idx, tabs.length-1)].id; }
+  renderTabs();
+  showPanel(activeTab);
+}
+
+function closeAllTabs() {
+  tabs = [{id:'home',name:'Home'}]; activeTab='home';
+  renderTabs(); showPanel('home'); toggleMore();
+}
+function closeOtherTabs() {
+  const cur = tabs.find(t => t.id===activeTab);
+  tabs = cur ? [cur] : [{id:'home',name:'Home'}];
+  renderTabs(); toggleMore();
+}
+function goToCurrentTab() {
+  document.getElementById('tab-strip').querySelector('.tab.active')?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+  toggleMore();
+}
+
+function scrollTabs(dx) {
+  document.getElementById('tab-strip').scrollBy({left:dx,behavior:'smooth'});
+}
+
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  let panel = document.getElementById('panel-'+id);
+  if (!panel && PLACEHOLDER_PAGES[id]) {
+    panel = createPlaceholderPanel(id);
+  }
+  if (panel) panel.classList.add('active');
+}
+
+function createPlaceholderPanel(id) {
+  const p = PLACEHOLDER_PAGES[id];
+  if (!p) return null;
+  const div = document.createElement('div');
+  div.className = 'panel';
+  div.id = 'panel-'+id;
+  div.innerHTML = `<div class="placeholder-panel"><div class="placeholder-icon"><i class="fa ${p.icon}"></i></div><div class="placeholder-title">${p.name}</div><div class="placeholder-sub">Content not yet captured — this page will display ${p.name} functionality.</div></div>`;
+  document.getElementById('content').appendChild(div);
+  return div;
+}
+
+// ===================== NAV =====================
+function navClick(index, name) {
+  const id = index === 'home' ? 'home' : String(index);
+  openTab(id, name);
+  // Mark active nav
+  document.querySelectorAll('.nav-item[data-index]').forEach(el => {
+    el.classList.toggle('active', el.dataset.index === String(index));
+  });
+}
+
+function toggleAcc(key, el) {
+  const children = document.getElementById('acc-'+key);
+  if (!children) return;
+  const open = children.classList.toggle('open');
+  el.classList.toggle('open', open);
+}
+
+// ===================== SIDEBAR =====================
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+function toggleUserMenu(e) {
+  document.getElementById('sb-user-block').classList.toggle('open');
+  e.stopPropagation();
+}
+
+document.addEventListener('click', () => {
+  document.getElementById('sb-user-block').classList.remove('open');
+  document.getElementById('tb-more').classList.remove('open');
+});
+
+// ===================== MORE MENU =====================
+function toggleMore() {
+  document.getElementById('tb-more').classList.toggle('open');
+  event && event.stopPropagation && event.stopPropagation();
+}
+
+// ===================== MODALS =====================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if(e.target===ov) ov.classList.remove('open'); });
+});
+
+// ===================== IC TABLE =====================
+function statusBadge(s) {
+  if (!s) return '';
+  const map = {New:'badge-blue','In Processing':'badge-orange',Partial:'badge-yellow',Completed:'badge-green'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function abiBadge(s) {
+  if (!s) return '';
+  const map = {'In Processing':'badge-orange','New':'badge-blue','Partly Received':'badge-yellow','Received':'badge-green','Not Available':'badge-gray','BILL NOT ON FILE':'badge-red'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function matchBadge(s) {
+  if (!s) return '';
+  const map = {'Yes':'badge-green','No':'badge-red','Not Existing':'badge-gray'};
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function tagPills(s) {
+  if (!s) return '';
+  return s.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span class="tag-pill">${t}</span>`).join('');
+}
+
+function buildTable() {
+  // Header name row
+  const nameRow = document.getElementById('hdr-name-row');
+  const filterRow = document.getElementById('hdr-filter-row');
+
+  const nameCells = ['☐',...COL_NAMES,'Tags'];
+  nameCells.forEach((n,i) => {
+    const th = document.createElement('th');
+    th.innerHTML = i===0 ? `<input type="checkbox" id="chk-all" onclick="selectAll(this)">` : n;
+    th.style.minWidth = i===0?'36px': (i===4||i===13?'200px': (i===8?'160px':'100px'));
+    nameRow.appendChild(th);
+  });
+
+  // Filter row
+  const filterCells = [
+    '', // checkbox
+    `<select class="ic-filter"><option>All</option><option>New</option><option>Partial</option></select>`,
+    `<select class="ic-filter"><option>All</option><option>New</option><option>Partly Received</option><option>Received</option><option>Not Available</option><option>In Processing</option><option>BILL NOT ON FILE</option></select>`,
+    `<select class="ic-filter"><option>All</option><option>Yes</option><option>No</option></select>`,
+    `<input type="text" class="ic-filter" placeholder="ULD#">`,
+    `<input type="text" class="ic-filter" placeholder="Customer/Code/CID/GID">`,
+    `<input type="text" class="ic-filter" placeholder="M#">`,
+    `<input type="text" class="ic-filter" placeholder="H#">`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<input type="text" class="ic-filter" placeholder="POL">`,
+    `<input type="text" class="ic-filter" placeholder="POD">`,
+    `<select class="ic-filter"><option value="">All</option>${FIRM_CODES.map(f=>`<option>${f}</option>`).join('')}</select>`,
+    `<input type="text" class="ic-filter" placeholder="Flight No">`,
+    `<input type="text" class="ic-filter" placeholder="Address">`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<select class="ic-filter"><option>All</option><option>Yes</option><option>No</option></select>`,
+    `<select class="ic-filter"><option>All</option><option>Existing</option><option>Partial</option><option>Not Existing</option></select>`,
+    `<input type="text" class="ic-filter" placeholder="OP Remarks">`,
+    `<input type="text" class="ic-filter" placeholder="SC JOB No">`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<select class="ic-filter"><option>All</option><option>YES</option><option>NO</option></select>`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<select class="ic-filter"><option value="">All</option>${OPERATORS.map(o=>`<option>${o}</option>`).join('')}</select>`,
+    `<input type="text" class="ic-filter" placeholder="Tags">`
+  ];
+  filterCells.forEach(fc => {
+    const th = document.createElement('th');
+    th.innerHTML = fc;
+    filterRow.appendChild(th);
+  });
+
+  // Body
+  const tbody = document.getElementById('ic-tbody');
+  IC_PENDING_DATA.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="row-chk"></td>
+      <td>${statusBadge(row.status)}</td>
+      <td>${abiBadge(row.abiStatus)}</td>
+      <td>${matchBadge(row.abiMatch)}</td>
+      <td>${row.uld}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${row.customer}</td>
+      <td>${row.mno}</td>
+      <td>${row.hno}</td>
+      <td style="white-space:nowrap;">${row.eta}</td>
+      <td>${row.pol}</td>
+      <td>${row.pod}</td>
+      <td>${row.firm}</td>
+      <td>${row.flight}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${row.addr}</td>
+      <td style="white-space:nowrap;">${row.lfd}</td>
+      <td>${row.wt==='Yes'?'<span class="badge badge-green">Yes</span>':'<span class="badge badge-gray">No</span>'}</td>
+      <td>${matchBadge(row.scStatus)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">${row.opRem}</td>
+      <td>${row.scJob}</td>
+      <td style="white-space:nowrap;">${row.preAlert}</td>
+      <td>${row.isOvs==='YES'?'<span class="badge badge-blue">YES</span>':'<span class="badge badge-gray">NO</span>'}</td>
+      <td style="white-space:nowrap;">${row.qSend}</td>
+      <td style="white-space:nowrap;">${row.qUpdate}</td>
+      <td>${row.operator}</td>
+      <td>${tagPills(row.tags)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function selectAll(el) {
+  document.querySelectorAll('.row-chk').forEach(c => c.checked = el.checked);
+}
+
+// ===================== COLUMNS SETUP =====================
+function buildColChecklist() {
+  const div = document.getElementById('col-checklist');
+  COL_NAMES.forEach(n => {
+    div.innerHTML += `<label class="col-item"><input type="checkbox" checked> ${n}</label>`;
+  });
+}
+function resetColumns() {
+  document.querySelectorAll('#col-checklist input').forEach(c => c.checked=true);
+}
+
+// ===================== SORT ROWS =====================
+let sortRowCount = 0;
+function addSortRow() {
+  if (sortRowCount >= 5) return;
+  sortRowCount++;
+  const id = 'sr-'+sortRowCount;
+  const div = document.createElement('div');
+  div.className = 'sort-row'; div.id = id;
+  div.innerHTML = `<select>${COL_NAMES.map(n=>`<option>${n}</option>`).join('')}</select><label><input type="radio" name="dir-${id}" value="ASC" checked> ASC</label><label><input type="radio" name="dir-${id}" value="DESC"> DESC</label><button class="rm-btn" onclick="removeSortRow('${id}')"><i class="fa fa-times"></i></button>`;
+  document.getElementById('sort-rows').appendChild(div);
+}
+function removeSortRow(id) {
+  const el = document.getElementById(id);
+  if (el) { el.remove(); sortRowCount = Math.max(0, sortRowCount-1); }
+}
+function clearSort() {
+  document.getElementById('sort-rows').innerHTML = '';
+  sortRowCount = 0;
+}
+
+// ===================== ADVANCED FILTER =====================
+let afGroupCount = 0;
+function addAfGroup() {
+  afGroupCount++;
+  const gid = 'afg-'+afGroupCount;
+  const div = document.createElement('div');
+  div.className = 'af-group'; div.id = gid;
+  div.innerHTML = `
+    <div class="af-group-hdr">
+      <label><b>Group ${afGroupCount}:</b></label>
+      <label><input type="radio" name="gop-${gid}" value="AND" checked> AND</label>
+      <label><input type="radio" name="gop-${gid}" value="OR"> OR</label>
+      <button class="btn btn-danger" style="padding:3px 8px;font-size:11px;margin-left:auto;" onclick="removeAfGroup('${gid}')">Remove Group</button>
+    </div>
+    <div class="af-group-body" id="${gid}-body"></div>
+    <div style="padding:6px 12px;border-top:1px solid var(--border);">
+      <button class="af-add-line-btn" onclick="addAfLine('${gid}-body')"><i class="fa fa-plus"></i> Add New Filter Line</button>
+    </div>`;
+  document.getElementById('af-groups').appendChild(div);
+  addAfLine(gid+'-body');
+}
+function removeAfGroup(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+function addAfLine(bodyId) {
+  const div = document.createElement('div');
+  div.className = 'af-line';
+  div.innerHTML = `
+    <select>${COL_NAMES.map(n=>`<option>${n}</option>`).join('')}</select>
+    <select class="op-sel"><option>=</option><option>&lt;&gt;</option><option>&gt;</option><option>&lt;</option><option>&gt;=</option><option>&lt;=</option><option>Contains</option><option>Exclude</option><option>Start With</option><option>End With</option><option>Is Blank</option><option>Is Not Blank</option><option>In</option><option>Not In</option><option>Between</option></select>
+    <input type="text" placeholder="Value">
+    <button class="rm-btn" onclick="this.parentElement.remove()"><i class="fa fa-times"></i></button>`;
+  document.getElementById(bodyId).appendChild(div);
+}
+function resetFilter() {
+  document.getElementById('af-groups').innerHTML = '';
+  afGroupCount = 0;
+}
+
+// ===================== SAVE TEMPLATE =====================
+const savedTemplates = [];
+function saveTemplate() {
+  const name = document.getElementById('template-name-input').value.trim();
+  if (name) {
+    savedTemplates.push(name);
+    const sel = document.getElementById('af-template-sel');
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  }
+  closeModal('modal-save-template');
+}
+
+// ===================== SC SEARCH =====================
+function scSearch() {
+  document.getElementById('sc-results').style.display='block';
+}
+
+// ===================== FIRM / OPERATOR SELECTS =====================
+function populateSelect(selId, opts) {
+  const sel = document.getElementById(selId);
+  if (!sel) return;
+  opts.forEach(o => { const opt=document.createElement('option'); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
+}
+
+// ===================== TAGS =====================
+function buildTagsChecklist() {
+  const div = document.getElementById('tags-checklist');
+  ALL_TAGS.forEach(t => {
+    div.innerHTML += `<label class="tag-check"><input type="checkbox"> ${t}</label>`;
+  });
+}
+function buildMaintainTags() {
+  const tbody = document.getElementById('mt-tbody');
+  ALL_TAGS.forEach((t,i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${t}</td><td>${i+1}</td><td><input type="checkbox" checked></td><td><button class="btn btn-secondary" style="padding:3px 8px;font-size:11px;">Edit</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===================== PAGINATION =====================
+let currentPage = 1;
+function updatePagination() {
+  const size = parseInt(document.getElementById('pg-size').value);
+  const total = IC_PENDING_DATA.length;
+  const pages = Math.ceil(total/size);
+  currentPage = 1;
+  document.getElementById('pg-info').textContent = `Page ${currentPage} of ${pages} | ${total} records`;
+}
+function changePage(dir) {
+  const size = parseInt(document.getElementById('pg-size').value);
+  const total = IC_PENDING_DATA.length;
+  const pages = Math.ceil(total/size);
+  currentPage = Math.max(1, Math.min(pages, currentPage+dir));
+  document.getElementById('pg-info').textContent = `Page ${currentPage} of ${pages} | ${total} records`;
+}
+
+// ===================== INNER TABS =====================
+function switchIcTab(idx) {
+  document.querySelectorAll('.ic-tab').forEach((t,i) => t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.ic-tab-panel').forEach((p,i) => p.classList.toggle('active',i===idx));
+}
+
+// ===================== INIT =====================
+(function init() {
+  renderTabs();
+  showPanel('home');
+  buildTable();
+  buildColChecklist();
+  addSortRow();
+  addAfGroup();
+  buildTagsChecklist();
+  buildMaintainTags();
+  populateSelect('sc-firm-sel', FIRM_CODES);
+  populateSelect('bu-operator', OPERATORS);
+})();
 </script>
 </body>
 </html>
