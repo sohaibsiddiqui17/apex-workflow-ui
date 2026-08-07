@@ -35,7 +35,7 @@
       display: flex;
       flex-direction: column;
       transition: width .22s ease, min-width .22s ease;
-      overflow: hidden;
+      overflow: visible;
       position: relative;
       z-index: 100;
     }
@@ -753,20 +753,122 @@
             </div>
           </div>
         </div>
-        <!-- Tab 1 placeholder -->
+        <!-- Tab 1: Import Confirm List -->
         <div class="ic-tab-panel" id="ic-panel-1">
-          <div class="placeholder-panel">
-            <div class="placeholder-icon"><i class="fa fa-list"></i></div>
-            <div class="placeholder-title">Import Confirm List</div>
-            <div class="placeholder-sub">Shows confirmed import shipments.</div>
+          <div class="ic-toolbar">
+            <button class="ic-btn" onclick="openModal('modal-columns')"><i class="fa fa-eye"></i> Columns Setup</button>
+            <button class="ic-btn" onclick="openModal('modal-sort')"><i class="fa fa-sort"></i> Combination Sort</button>
+            <button class="ic-btn" onclick="openModal('modal-filter')"><i class="fa fa-filter"></i> Advanced Filter</button>
+            <button class="ic-btn" onclick="openModal('modal-save-template')"><i class="fa fa-bookmark"></i> Save Template</button>
+            <button class="ic-btn" onclick="openModal('modal-account-mapping')"><i class="fa fa-map"></i> Account Mapping</button>
+            <button class="ic-btn" onclick="openModal('modal-get-sc-job')"><i class="fa fa-search"></i> Get SC Job</button>
+            <button class="ic-btn" onclick="openModal('modal-batch-update')"><i class="fa fa-pen-to-square"></i> Batch Update</button>
+            <button class="ic-btn" onclick="openModal('modal-update-tags')"><i class="fa fa-tags"></i> Update Tags</button>
+            <button class="ic-btn" onclick="openModal('modal-maintain-tags')"><i class="fa fa-wrench"></i> Maintain Tags</button>
+            <button class="ic-btn"><i class="fa fa-file-excel"></i> Export Excel</button>
+            <button class="ic-btn"><i class="fa fa-plus"></i> Add New</button>
+          </div>
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table class="ic-table" id="ic-table-list">
+                <thead>
+                  <tr class="hdr-name" id="hdr-name-row-list"></tr>
+                  <tr class="hdr-filter" id="hdr-filter-row-list"></tr>
+                </thead>
+                <tbody id="ic-tbody-list"></tbody>
+              </table>
+            </div>
+            <div class="pagination-bar">
+              <span>Items per page:</span>
+              <select class="pg-select" onchange="updatePagination()">
+                <option>50</option><option>100</option><option>200</option><option>300</option><option>500</option>
+              </select>
+              <button class="pg-btn">&#8249; Prev</button>
+              <span>Page 1 of 1 &nbsp;|&nbsp; 18 records</span>
+              <button class="pg-btn">Next &#8250;</button>
+            </div>
           </div>
         </div>
-        <!-- Tab 2 placeholder -->
+
+        <!-- Tab 2: ABI Query -->
         <div class="ic-tab-panel" id="ic-panel-2">
-          <div class="placeholder-panel">
-            <div class="placeholder-icon"><i class="fa fa-search"></i></div>
-            <div class="placeholder-title">ABI Query</div>
-            <div class="placeholder-sub">Run ABI queries against CBP.</div>
+          <!-- ABI Query search bar -->
+          <div class="ic-toolbar" style="flex-wrap:wrap;gap:8px;align-items:flex-end">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">M#</label>
+              <input type="text" class="filter-input" placeholder="Master AWB#" style="width:160px">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">H#</label>
+              <input type="text" class="filter-input" placeholder="House AWB#" style="width:160px">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">ABI Status</label>
+              <select class="filter-select" style="width:160px">
+                <option value="">All</option>
+                <option>New</option><option>Partly Received</option><option>Received</option>
+                <option>Not Available</option><option>In Processing</option><option>BILL NOT ON FILE</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">Query Date</label>
+              <input type="date" class="filter-input" style="width:140px">
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:1px">
+              <button class="ic-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)"><i class="fa fa-search"></i> Search</button>
+              <button class="ic-btn"><i class="fa fa-rotate-left"></i> Reset</button>
+              <button class="ic-btn"><i class="fa fa-file-excel"></i> Export</button>
+            </div>
+          </div>
+          <!-- ABI results table -->
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table class="ic-table">
+                <thead>
+                  <tr class="hdr-name" style="background:#1a2e45">
+                    <th style="width:36px"><input type="checkbox" onclick="this.closest('table').querySelectorAll('tbody input[type=checkbox]').forEach(c=>c.checked=this.checked)"></th>
+                    <th>M#</th><th>H#</th><th>Customer</th><th>POL</th><th>POD</th>
+                    <th>Flight No</th><th>ETA</th>
+                    <th>ABI Status</th><th>ABI Match</th>
+                    <th>Query Send Date</th><th>Query Update Date</th>
+                    <th>Firm Code</th><th>Operator</th>
+                  </tr>
+                  <tr class="hdr-filter">
+                    <th></th>
+                    <th><input class="filter-input" placeholder="M#"></th>
+                    <th><input class="filter-input" placeholder="H#"></th>
+                    <th><input class="filter-input" placeholder="Customer"></th>
+                    <th><input class="filter-input" placeholder="POL"></th>
+                    <th><input class="filter-input" placeholder="POD"></th>
+                    <th><input class="filter-input" placeholder="Flight"></th>
+                    <th style="min-width:160px">
+                      <input type="date" class="filter-input" style="width:100%;margin-bottom:2px">
+                      <input type="date" class="filter-input" style="width:100%">
+                    </th>
+                    <th><select class="filter-select"><option value="">All</option><option>New</option><option>In Processing</option><option>Received</option><option>Not Available</option><option>BILL NOT ON FILE</option></select></th>
+                    <th><select class="filter-select"><option value="">All</option><option>Yes</option><option>No</option><option>Not Existing</option></select></th>
+                    <th style="min-width:160px">
+                      <input type="date" class="filter-input" style="width:100%;margin-bottom:2px">
+                      <input type="date" class="filter-input" style="width:100%">
+                    </th>
+                    <th style="min-width:160px">
+                      <input type="date" class="filter-input" style="width:100%;margin-bottom:2px">
+                      <input type="date" class="filter-input" style="width:100%">
+                    </th>
+                    <th><select class="filter-select" id="abi-firm-filter"><option value="">All</option></select></th>
+                    <th><select class="filter-select" id="abi-op-filter"><option value="">All</option></select></th>
+                  </tr>
+                </thead>
+                <tbody id="abi-tbody"></tbody>
+              </table>
+            </div>
+            <div class="pagination-bar">
+              <span>Items per page:</span>
+              <select class="pg-select"><option>50</option><option>100</option><option>200</option><option>300</option><option>500</option></select>
+              <button class="pg-btn">&#8249; Prev</button>
+              <span>Page 1 of 1 &nbsp;|&nbsp; 26 records</span>
+              <button class="pg-btn">Next &#8250;</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1053,16 +1155,16 @@ function closeTab(id) {
 
 function closeAllTabs() {
   tabs = [{id:'home',name:'Home'}]; activeTab='home';
-  renderTabs(); showPanel('home'); toggleMore();
+  renderTabs(); showPanel('home'); closeMore();
 }
 function closeOtherTabs() {
   const cur = tabs.find(t => t.id===activeTab);
   tabs = cur ? [cur] : [{id:'home',name:'Home'}];
-  renderTabs(); toggleMore();
+  renderTabs(); closeMore();
 }
 function goToCurrentTab() {
   document.getElementById('tab-strip').querySelector('.tab.active')?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
-  toggleMore();
+  closeMore();
 }
 
 function scrollTabs(dx) {
@@ -1125,6 +1227,9 @@ document.addEventListener('click', () => {
 function toggleMore() {
   document.getElementById('tb-more').classList.toggle('open');
   event && event.stopPropagation && event.stopPropagation();
+}
+function closeMore() {
+  document.getElementById('tb-more').classList.remove('open');
 }
 
 // ===================== MODALS =====================
@@ -1382,11 +1487,106 @@ function switchIcTab(idx) {
   document.querySelectorAll('.ic-tab-panel').forEach((p,i) => p.classList.toggle('active',i===idx));
 }
 
+// ===================== LIST TAB TABLE =====================
+function buildListTable() {
+  const nameRow = document.getElementById('hdr-name-row-list');
+  const filterRow = document.getElementById('hdr-filter-row-list');
+  if (!nameRow) return;
+  const nameCells = ['☐',...COL_NAMES,'Tags'];
+  nameCells.forEach((n,i) => {
+    const th = document.createElement('th');
+    th.innerHTML = i===0 ? `<input type="checkbox" onclick="this.closest('table').querySelectorAll('tbody input').forEach(c=>c.checked=this.checked)">` : n;
+    th.style.minWidth = i===0?'36px': (i===4||i===13?'200px': (i===8?'160px':'100px'));
+    nameRow.appendChild(th);
+  });
+  const filterCells = [
+    '',
+    `<select class="ic-filter"><option>All</option><option>New</option><option>Partial</option></select>`,
+    `<select class="ic-filter"><option>All</option><option>New</option><option>Partly Received</option><option>Received</option><option>Not Available</option><option>In Processing</option><option>BILL NOT ON FILE</option></select>`,
+    `<select class="ic-filter"><option>All</option><option>Yes</option><option>No</option></select>`,
+    `<input type="text" class="ic-filter" placeholder="ULD#">`,
+    `<input type="text" class="ic-filter" placeholder="Customer/Code/CID/GID">`,
+    `<input type="text" class="ic-filter" placeholder="M#">`,
+    `<input type="text" class="ic-filter" placeholder="H#">`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<input type="text" class="ic-filter" placeholder="POL">`,
+    `<input type="text" class="ic-filter" placeholder="POD">`,
+    `<select class="ic-filter"><option value="">All</option>${FIRM_CODES.map(f=>`<option>${f}</option>`).join('')}</select>`,
+    `<input type="text" class="ic-filter" placeholder="Flight No">`,
+    `<input type="text" class="ic-filter" placeholder="Address">`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<select class="ic-filter"><option>All</option><option>Yes</option><option>No</option></select>`,
+    `<select class="ic-filter"><option>All</option><option>Existing</option><option>Partial</option><option>Not Existing</option></select>`,
+    `<input type="text" class="ic-filter" placeholder="OP Remarks">`,
+    `<input type="text" class="ic-filter" placeholder="SC JOB No">`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<select class="ic-filter"><option>All</option><option>YES</option><option>NO</option></select>`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<div class="date-pair"><input type="date" class="ic-filter"><input type="date" class="ic-filter"></div>`,
+    `<select class="ic-filter"><option value="">All</option>${OPERATORS.map(o=>`<option>${o}</option>`).join('')}</select>`,
+    `<input type="text" class="ic-filter" placeholder="Tags">`
+  ];
+  filterCells.forEach(fc => {
+    const th = document.createElement('th'); th.innerHTML = fc; filterRow.appendChild(th);
+  });
+  // Reuse same data for list tab (showing confirmed records)
+  const tbody = document.getElementById('ic-tbody-list');
+  IC_PENDING_DATA.slice(0,18).forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="row-chk"></td>
+      <td>${statusBadge(row.status)}</td><td>${abiBadge(row.abiStatus)}</td><td>${matchBadge(row.abiMatch)}</td>
+      <td>${row.uld}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${row.customer}</td>
+      <td>${row.mno}</td><td>${row.hno}</td><td style="white-space:nowrap;">${row.eta}</td>
+      <td>${row.pol}</td><td>${row.pod}</td><td>${row.firm}</td><td>${row.flight}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${row.addr}</td>
+      <td style="white-space:nowrap;">${row.lfd}</td>
+      <td>${row.wt==='Yes'?'<span class="badge badge-green">Yes</span>':'<span class="badge badge-gray">No</span>'}</td>
+      <td>${matchBadge(row.scStatus)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">${row.opRem}</td>
+      <td>${row.scJob}</td><td style="white-space:nowrap;">${row.preAlert}</td>
+      <td>${row.isOvs==='YES'?'<span class="badge badge-blue">YES</span>':'<span class="badge badge-gray">NO</span>'}</td>
+      <td style="white-space:nowrap;">${row.qSend}</td><td style="white-space:nowrap;">${row.qUpdate}</td>
+      <td>${row.operator}</td><td>${tagPills(row.tags)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===================== ABI QUERY TAB =====================
+function buildAbiTable() {
+  const tbody = document.getElementById('abi-tbody');
+  if (!tbody) return;
+  // Populate firm/operator dropdowns for ABI tab
+  populateSelect('abi-firm-filter', FIRM_CODES);
+  populateSelect('abi-op-filter', OPERATORS);
+  // Sample ABI rows
+  IC_PENDING_DATA.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="row-chk"></td>
+      <td style="white-space:nowrap;">${row.mno}</td>
+      <td style="white-space:nowrap;">${row.hno}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${row.customer}</td>
+      <td>${row.pol}</td><td>${row.pod}</td>
+      <td>${row.flight}</td>
+      <td style="white-space:nowrap;">${row.eta}</td>
+      <td>${abiBadge(row.abiStatus)}</td>
+      <td>${matchBadge(row.abiMatch)}</td>
+      <td style="white-space:nowrap;">${row.qSend}</td>
+      <td style="white-space:nowrap;">${row.qUpdate}</td>
+      <td>${row.firm}</td>
+      <td>${row.operator}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 // ===================== INIT =====================
 (function init() {
   renderTabs();
   showPanel('home');
   buildTable();
+  buildListTable();
+  buildAbiTable();
   buildColChecklist();
   addSortRow();
   addAfGroup();
