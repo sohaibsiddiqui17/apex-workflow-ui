@@ -672,20 +672,32 @@
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-icon blue"><i class="fa fa-clock"></i></div>
-            <div><div class="stat-val">126</div><div class="stat-label">Pending Confirm</div></div>
+            <div><div class="stat-val" id="stat-pending">—</div><div class="stat-label">Import Confirm Total</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon orange"><i class="fa fa-spinner"></i></div>
-            <div><div class="stat-val">43</div><div class="stat-label">In Processing</div></div>
+            <div class="stat-icon orange"><i class="fa fa-robot"></i></div>
+            <div><div class="stat-val" id="stat-bot-pending">—</div><div class="stat-label">Bot Pending</div></div>
           </div>
           <div class="stat-card">
             <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
-            <div><div class="stat-val">89</div><div class="stat-label">Completed Today</div></div>
+            <div><div class="stat-val" id="stat-bot-arrived">—</div><div class="stat-label">Bot Arrived</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon purple"><i class="fa fa-search"></i></div>
-            <div><div class="stat-val">312</div><div class="stat-label">ABI Queries</div></div>
+            <div class="stat-icon purple"><i class="fa fa-ship"></i></div>
+            <div><div class="stat-val" id="stat-pickup">—</div><div class="stat-label">Pickup Reports</div></div>
           </div>
+        </div>
+        <!-- Upload bar -->
+        <div style="display:flex;gap:10px;margin:12px 0 4px;flex-wrap:wrap">
+          <label class="ic-btn" style="cursor:pointer;background:#1a7a4a;color:#fff;border-color:#1a7a4a;font-size:12px;padding:7px 14px">
+            <i class="fa fa-upload"></i> Upload Import Confirm
+            <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadImportConfirm(this)">
+          </label>
+          <label class="ic-btn" style="cursor:pointer;background:#1a5fa4;color:#fff;border-color:#1a5fa4;font-size:12px;padding:7px 14px">
+            <i class="fa fa-upload"></i> Upload Pickup Report
+            <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadPickupReport(this)">
+          </label>
+          <button class="ic-btn" style="font-size:12px;padding:7px 14px" onclick="loadStats()"><i class="fa fa-sync"></i> Refresh Stats</button>
         </div>
         <div class="qa-title">Quick Access</div>
         <div class="qa-grid">
@@ -730,7 +742,13 @@
             <button class="ic-btn" onclick="openModal('modal-maintain-tags')"><i class="fa fa-wrench"></i> Maintain Tags</button>
             <button class="ic-btn"><i class="fa fa-file-excel"></i> Export Excel</button>
             <button class="ic-btn"><i class="fa fa-plus"></i> Add New</button>
+            <label class="ic-btn" style="cursor:pointer;background:#1a7a4a;color:#fff;border-color:#1a7a4a" title="Upload Import Confirm .xlsx">
+              <i class="fa fa-upload"></i> Upload Excel
+              <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadImportConfirm(this)">
+            </label>
           </div>
+          <!-- Bot status strip -->
+          <div id="ic-bot-strip" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>
           <!-- Table -->
           <div class="table-wrap">
             <div class="table-scroll">
@@ -767,6 +785,10 @@
             <button class="ic-btn" onclick="openModal('modal-maintain-tags')"><i class="fa fa-wrench"></i> Maintain Tags</button>
             <button class="ic-btn"><i class="fa fa-file-excel"></i> Export Excel</button>
             <button class="ic-btn"><i class="fa fa-plus"></i> Add New</button>
+            <label class="ic-btn" style="cursor:pointer;background:#1a7a4a;color:#fff;border-color:#1a7a4a" title="Upload Import Confirm .xlsx">
+              <i class="fa fa-upload"></i> Upload Excel
+              <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadImportConfirm(this)">
+            </label>
           </div>
           <div class="table-wrap">
             <div class="table-scroll">
@@ -1580,6 +1602,62 @@ function buildAbiTable() {
   });
 }
 
+// ===================== API INTEGRATION =====================
+const API_BASE = 'http://localhost:8090';
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API_BASE}/api/stats`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const ic = data.import_confirm || {};
+    const pr = data.pickup_report || {};
+
+    // Update dashboard stat cards
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? '—'; };
+    set('stat-pending', ic.total ?? '—');
+    set('stat-bot-pending', (ic.by_bot_status || {}).pending ?? '—');
+    set('stat-bot-arrived', (ic.by_bot_status || {}).arrived ?? '—');
+    set('stat-pickup', pr.total ?? '—');
+
+    // Bot status strip on Import Confirm panel
+    const strip = document.getElementById('ic-bot-strip');
+    if (strip && ic.by_bot_status) {
+      const colorMap = { pending:'#f59e0b', arrived:'#22c55e', no_eta:'#8b5cf6', error:'#ef4444' };
+      strip.innerHTML = Object.entries(ic.by_bot_status).map(([k,v]) =>
+        `<span style="background:${colorMap[k]||'#64748b'};color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">${k}: ${v}</span>`
+      ).join('');
+    }
+  } catch (_) { /* server offline — silently ignore */ }
+}
+
+async function _upload(endpoint, fileInput, label) {
+  const file = fileInput.files[0];
+  if (!file) return;
+  fileInput.value = '';
+  const fd = new FormData();
+  fd.append('file', file);
+  const btn = fileInput.closest('label');
+  if (btn) { btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none'; }
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (res.ok) {
+      alert(`✅ ${label} upload complete\nUpserted: ${data.upserted}  Skipped: ${data.skipped}`);
+      loadStats();
+    } else {
+      alert(`❌ Upload failed: ${data.detail || JSON.stringify(data)}`);
+    }
+  } catch (e) {
+    alert(`❌ Cannot reach server at ${API_BASE}\nStart the mock backend first:\n  uvicorn main:app --port 8090 --reload`);
+  } finally {
+    if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
+  }
+}
+
+function uploadImportConfirm(input) { _upload('/api/upload/import-confirm', input, 'Import Confirm'); }
+function uploadPickupReport(input)   { _upload('/api/upload/pickup-report',  input, 'Pickup Report'); }
+
 // ===================== INIT =====================
 (function init() {
   renderTabs();
@@ -1594,6 +1672,7 @@ function buildAbiTable() {
   buildMaintainTags();
   populateSelect('sc-firm-sel', FIRM_CODES);
   populateSelect('bu-operator', OPERATORS);
+  loadStats();
 })();
 </script>
 </body>
