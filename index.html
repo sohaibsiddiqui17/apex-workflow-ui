@@ -267,6 +267,34 @@
     .qa-card i { font-size: 22px; color: var(--accent); margin-bottom: 8px; display: block; }
     .qa-card span { font-size: 11.5px; font-weight: 500; }
 
+    /* ===== UPDATE ATD/ATA PANEL ===== */
+    .atd-filter-bar {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      margin-bottom: 10px; padding: 10px 14px;
+      background: #fff; border: 1px solid var(--border); border-radius: 6px;
+    }
+    .atd-filter-bar label { font-size: 11.5px; font-weight: 600; color: #64748b; margin-right: 4px; }
+    .atd-filter-select {
+      border: 1px solid var(--border); border-radius: 4px; padding: 5px 10px;
+      font-size: 12px; font-family: inherit; background: #fff; color: var(--text);
+      min-width: 160px;
+    }
+    .atd-status-depart { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .atd-status-arrival { background: #ffedd5; color: #c2410c; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .atd-status-done { background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .atd-row-selected { background: #eff6ff !important; }
+    .modal-field-group { display: flex; flex-direction: column; gap: 10px; }
+    .modal-field { display: flex; align-items: center; gap: 10px; }
+    .modal-field label { width: 110px; font-size: 12px; font-weight: 600; color: #64748b; flex-shrink: 0; }
+    .modal-field-ro { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; font-size: 12px; flex: 1; color: #475569; }
+    .modal-field-input { border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; font-size: 12px; flex: 1; font-family: inherit; }
+    .atd-suggest-box { margin-top: 6px; padding: 8px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; font-size: 12px; }
+    .atd-suggest-label { color: #64748b; font-weight: 500; }
+    .atd-suggest-val { color: #1d4ed8; font-weight: 700; font-size: 13px; }
+    .atd-suggest-rule { color: #64748b; font-size: 11px; margin-left: 6px; }
+    .btn-suggest { background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 6px; }
+    .btn-suggest:hover { background: #dbeafe; }
+
     /* ===== PLACEHOLDER PANEL ===== */
     .placeholder-panel {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -672,19 +700,19 @@
         <div class="stat-grid">
           <div class="stat-card">
             <div class="stat-icon blue"><i class="fa fa-clock"></i></div>
-            <div><div class="stat-val" id="stat-pending">—</div><div class="stat-label">Import Confirm Total</div></div>
+            <div><div class="stat-val" id="stat-pending">0</div><div class="stat-label">Import Confirm Total</div></div>
           </div>
           <div class="stat-card">
             <div class="stat-icon orange"><i class="fa fa-robot"></i></div>
-            <div><div class="stat-val" id="stat-bot-pending">—</div><div class="stat-label">Bot Pending</div></div>
+            <div><div class="stat-val" id="stat-bot-pending">0</div><div class="stat-label">Bot Pending</div></div>
           </div>
           <div class="stat-card">
             <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
-            <div><div class="stat-val" id="stat-bot-arrived">—</div><div class="stat-label">Bot Arrived</div></div>
+            <div><div class="stat-val" id="stat-bot-arrived">0</div><div class="stat-label">Bot Arrived</div></div>
           </div>
           <div class="stat-card">
             <div class="stat-icon purple"><i class="fa fa-ship"></i></div>
-            <div><div class="stat-val" id="stat-pickup">—</div><div class="stat-label">Pickup Reports</div></div>
+            <div><div class="stat-val" id="stat-pickup">0</div><div class="stat-label">Pickup Reports</div></div>
           </div>
         </div>
         <!-- Upload bar -->
@@ -721,6 +749,146 @@
       </div>
 
       <!-- Import Confirm panel -->
+      <!-- ====== UPDATE ATD & ATA PANEL ====== -->
+      <div class="panel" id="panel-2">
+        <!-- Filter bar -->
+        <div class="atd-filter-bar">
+          <label>Customer:</label>
+          <select class="atd-filter-select" id="atd-cust-filter" onchange="filterAtdTable()">
+            <option value="">All Customers</option>
+            <option value="APPLE GROUP">APPLE GROUP</option>
+            <option value="HP GROUP">HP GROUP</option>
+          </select>
+          <label style="margin-left:12px">POD:</label>
+          <select class="atd-filter-select" id="atd-pod-filter" onchange="filterAtdTable()">
+            <option value="">All POD</option>
+            <option value="LAX">Los Angeles (LAX)</option>
+            <option value="ONT">Los Angeles (ONT)</option>
+          </select>
+          <span id="atd-row-count" style="margin-left:auto;font-size:12px;color:#64748b"></span>
+        </div>
+        <!-- Toolbar -->
+        <div class="ic-toolbar" style="margin-bottom:10px">
+          <button class="ic-btn" onclick="clearAtdSearch()" style="background:#2B7FFF;color:#fff;border-color:#2B7FFF"><i class="fa fa-times-circle"></i> Clear All Search</button>
+          <button class="ic-btn" onclick="openAtdModal('atd')" style="background:#2B7FFF;color:#fff;border-color:#2B7FFF"><i class="fa fa-plane-departure"></i> Update ATD</button>
+          <button class="ic-btn" onclick="openAtdModal('ata')" style="background:#2B7FFF;color:#fff;border-color:#2B7FFF"><i class="fa fa-plane-arrival"></i> Update ATA</button>
+          <button class="ic-btn"><i class="fa fa-download"></i> Exception Download</button>
+          <button class="ic-btn"><i class="fa fa-exchange-alt"></i> Transit ATA/ATD</button>
+          <button class="ic-btn" onclick="batchUpdateAtdAta('atd')" style="background:#2B7FFF;color:#fff;border-color:#2B7FFF"><i class="fa fa-layer-group"></i> Batch Update ATD</button>
+          <button class="ic-btn" onclick="batchUpdateAtdAta('ata')" style="background:#2B7FFF;color:#fff;border-color:#2B7FFF"><i class="fa fa-layer-group"></i> Batch Update ATA</button>
+        </div>
+        <!-- Table -->
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table class="ic-table" id="atd-table">
+              <thead>
+                <tr class="hdr-name">
+                  <th style="min-width:36px"><input type="checkbox" id="atd-chk-all" onclick="atdSelectAll(this)"></th>
+                  <th>M#</th><th>H#</th><th>Customer</th><th>Airline</th>
+                  <th>Flight No</th><th>Status</th><th>POL</th><th>POD</th>
+                  <th>SLA Date</th><th>ETD (Original)</th><th>ETA (Destination)</th>
+                </tr>
+                <tr class="hdr-filter">
+                  <th></th>
+                  <th><input class="ic-filter" placeholder="M#" oninput="filterAtdTable()"></th>
+                  <th><input class="ic-filter" placeholder="H#" oninput="filterAtdTable()"></th>
+                  <th><input class="ic-filter" placeholder="Customer" oninput="filterAtdTable()"></th>
+                  <th><input class="ic-filter" placeholder="Airline" oninput="filterAtdTable()"></th>
+                  <th><input class="ic-filter" placeholder="Flight No" oninput="filterAtdTable()"></th>
+                  <th><select class="ic-filter" onchange="filterAtdTable()"><option value="">All</option><option>Pending Depart</option><option>Pending Arrival</option><option>Completed</option></select></th>
+                  <th><input class="ic-filter" placeholder="POL" oninput="filterAtdTable()"></th>
+                  <th><select class="ic-filter" onchange="filterAtdTable()"><option value="">All</option><option>LAX</option><option>ONT</option></select></th>
+                  <th></th><th></th><th></th>
+                </tr>
+              </thead>
+              <tbody id="atd-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination-bar">
+            <span id="atd-pg-info">0 records</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== UPDATE ATD MODAL ====== -->
+      <div class="modal-overlay" id="modal-atd-update">
+        <div class="modal" style="width:400px">
+          <div class="modal-hdr">
+            <h3 id="atd-modal-title">Update ATD</h3>
+            <button class="modal-close" onclick="closeModal('modal-atd-update')"><i class="fa fa-times"></i></button>
+          </div>
+          <div class="modal-body">
+            <div class="modal-field-group">
+              <div class="modal-field"><label>MAWB</label><div class="modal-field-ro" id="atd-m-mawb"></div></div>
+              <div class="modal-field"><label>POL</label><div class="modal-field-ro" id="atd-m-pol"></div></div>
+              <div class="modal-field"><label>POD</label><div class="modal-field-ro" id="atd-m-pod"></div></div>
+              <div class="modal-field"><label>ETD</label><div class="modal-field-ro" id="atd-m-etd"></div></div>
+              <div class="modal-field"><label>Captured <span id="atd-m-type-label">ATD</span></label><div class="modal-field-ro" id="atd-m-captured"></div></div>
+              <div class="modal-field" style="align-items:flex-start">
+                <label>* <span id="atd-m-input-label">ATD</span></label>
+                <div style="flex:1">
+                  <div style="display:flex;gap:8px">
+                    <input type="date" id="atd-m-date" class="modal-field-input" style="flex:1" oninput="recalcAtdSuggest()">
+                    <input type="time" id="atd-m-time" class="modal-field-input" style="width:110px" oninput="recalcAtdSuggest()">
+                  </div>
+                  <div class="atd-suggest-box" id="atd-suggest-box" style="display:none">
+                    <div class="atd-suggest-label">Suggest:</div>
+                    <div>
+                      <span class="atd-suggest-val" id="atd-suggest-val"></span>
+                      <span class="atd-suggest-rule" id="atd-suggest-rule"></span>
+                    </div>
+                    <button class="btn-suggest" onclick="useAtdSuggest()">Use this value</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" onclick="closeModal('modal-atd-update')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveAtdAta()">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== BATCH ATD/ATA MODAL ====== -->
+      <div class="modal-overlay" id="modal-batch-atd">
+        <div class="modal" style="width:420px">
+          <div class="modal-hdr">
+            <h3 id="batch-atd-title">Batch Update ATD</h3>
+            <button class="modal-close" onclick="closeModal('modal-batch-atd')"><i class="fa fa-times"></i></button>
+          </div>
+          <div class="modal-body">
+            <div style="font-size:12px;color:#64748b;margin-bottom:12px">
+              Applies to all selected shipments with the same Airline + Flight + ETA date.
+            </div>
+            <div id="batch-atd-group-info" style="background:#f8fafc;border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:14px;font-size:12px;"></div>
+            <div class="modal-field-group">
+              <div class="modal-field" style="align-items:flex-start">
+                <label>* <span id="batch-atd-label">ATD</span></label>
+                <div style="flex:1">
+                  <div style="display:flex;gap:8px">
+                    <input type="date" id="batch-atd-date" class="modal-field-input" style="flex:1" oninput="recalcBatchSuggest()">
+                    <input type="time" id="batch-atd-time" class="modal-field-input" style="width:110px" oninput="recalcBatchSuggest()">
+                  </div>
+                  <div class="atd-suggest-box" id="batch-suggest-box" style="display:none">
+                    <div class="atd-suggest-label">Suggest:</div>
+                    <div>
+                      <span class="atd-suggest-val" id="batch-suggest-val"></span>
+                      <span class="atd-suggest-rule" id="batch-suggest-rule"></span>
+                    </div>
+                    <button class="btn-suggest" onclick="useBatchSuggest()">Use this value</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-secondary" onclick="closeModal('modal-batch-atd')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveBatchAtdAta()">Apply to All</button>
+          </div>
+        </div>
+      </div>
+
       <div class="panel" id="panel-16">
         <div class="ic-inner-tabs" id="ic-inner-tabs">
           <div class="ic-tab active" onclick="switchIcTab(0)">Import Confirm Pending</div>
@@ -747,8 +915,8 @@
               <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadImportConfirm(this)">
             </label>
           </div>
-          <!-- Bot status strip -->
-          <div id="ic-bot-strip" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>
+          <!-- Bot status strip (hidden when empty) -->
+          <div id="ic-bot-strip" style="display:none;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>
           <!-- Table -->
           <div class="table-wrap">
             <div class="table-scroll">
@@ -1095,8 +1263,283 @@ const IC_PENDING_DATA = [
   {status:'New',abiStatus:'New',abiMatch:'Not Existing',uld:'',customer:'QUANTA COMPUTER INC.',mno:'BR012',hno:'TPEAE2607002',eta:'2026-08-02 20:00',pol:'TPE',pod:'ORD',firm:'APEX-ORD',flight:'BR012',addr:'1009 THINK PL MORRISVILLE NC 27560',lfd:'2026-08-03 20:00',wt:'No',scStatus:'Not Existing',opRem:'',scJob:'',preAlert:'2026-08-02 20:00',isOvs:'NO',qSend:'2026-07-31 11:00',qUpdate:'2026-07-31 09:00',operator:'KARINA.TORRES',tags:''}
 ];
 
+// ===================== ATD/ATA DATA =====================
+const ATD_ATA_DATA = [
+  {mawb:'184-03199475',hawb:'GKQXA0006581571',customer:'APPLE GROUP',airline:'CZ',flight:'CZ2931',status:'Pending Depart',pol:'PVG',pod:'LAX',slaDate:'2025-04-23 13:00:00',etdOrig:'2025-04-21 17:00:00',eta:'2025-04-22 11:30:00',atd:'',ata:''},
+  {mawb:'184-47766390',hawb:'GKQXA0006581600',customer:'APPLE GROUP',airline:'BR',flight:'BR016',status:'Pending Depart',pol:'TPE',pod:'LAX',slaDate:'2025-04-17 13:00:00',etdOrig:'2025-04-15 22:00:00',eta:'2025-04-16 01:10:00',atd:'',ata:''},
+  {mawb:'281-66102183',hawb:'GKQMA0006581001',customer:'HP GROUP',airline:'CI',flight:'CI162',status:'Pending Depart',pol:'TPE',pod:'LAX',slaDate:'2025-05-10 09:00:00',etdOrig:'2025-05-08 13:00:00',eta:'2025-05-09 10:00:00',atd:'',ata:''},
+  {mawb:'281-66102362',hawb:'GKQMA0006581002',customer:'HP GROUP',airline:'CI',flight:'CI162',status:'Pending Depart',pol:'TPE',pod:'LAX',slaDate:'2025-05-10 09:00:00',etdOrig:'2025-05-08 13:00:00',eta:'2025-05-09 10:00:00',atd:'',ata:''},
+  {mawb:'281-44170090',hawb:'GKQMA0006582100',customer:'HP GROUP',airline:'CZ',flight:'CZ289',status:'Pending Depart',pol:'PVG',pod:'LAX',slaDate:'2025-05-11 09:00:00',etdOrig:'2025-05-09 14:00:00',eta:'2025-05-10 11:00:00',atd:'',ata:''},
+  {mawb:'387-60417065',hawb:'GKQZA0006582001',customer:'APPLE GROUP',airline:'CI',flight:'CI162',status:'Pending Arrival',pol:'TPE',pod:'LAX',slaDate:'2025-05-08 14:55:00',etdOrig:'2025-05-08 04:00:00',eta:'2025-05-08 22:30:00',atd:'2025-05-08 04:10:00',ata:''},
+  {mawb:'387-65866041',hawb:'GKQZA0006582002',customer:'APPLE GROUP',airline:'CI',flight:'CI162',status:'Pending Arrival',pol:'TPE',pod:'ONT',slaDate:'2025-05-08 14:55:00',etdOrig:'2025-05-08 04:00:00',eta:'2025-05-08 22:30:00',atd:'2025-05-08 04:15:00',ata:''},
+  {mawb:'695-59478845',hawb:'GKQBA0006582200',customer:'APPLE GROUP',airline:'BR',flight:'BR0630',status:'Pending Arrival',pol:'TPE',pod:'LAX',slaDate:'2025-04-18 01:10:00',etdOrig:'2025-04-16 04:00:00',eta:'2025-04-16 01:10:00',atd:'2025-04-16 04:05:00',ata:''},
+  {mawb:'184-62103811',hawb:'GKQXA0006581700',customer:'APPLE GROUP',airline:'CZ',flight:'CZ289',status:'Pending Depart',pol:'PVG',pod:'ONT',slaDate:'2025-05-12 09:00:00',etdOrig:'2025-05-10 15:00:00',eta:'2025-05-11 12:00:00',atd:'',ata:''},
+  {mawb:'281-55890012',hawb:'GKQMA0006581900',customer:'HP GROUP',airline:'UA',flight:'UA857',status:'Pending Arrival',pol:'HAN',pod:'LAX',slaDate:'2025-05-09 09:00:00',etdOrig:'2025-05-07 22:00:00',eta:'2025-05-08 06:00:00',atd:'2025-05-07 22:05:00',ata:''},
+];
+
+let _atdFiltered = [...ATD_ATA_DATA];
+let _atdModalType = 'atd'; // 'atd' or 'ata'
+let _atdModalRow = null;
+let _batchModalType = 'atd';
+let _batchSelectedRows = [];
+
+// ─── Time Rule Calculator ───────────────────────────────────────────────────
+function fmtDatetime(dt) {
+  const pad = n => String(n).padStart(2,'0');
+  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:00`;
+}
+function dateToInputs(dt) {
+  const pad = n => String(n).padStart(2,'0');
+  const date = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+  const time = `${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  return { date, time };
+}
+function calcTimeRule(actualDateStr, actualTimeStr) {
+  if (!actualDateStr || !actualTimeStr) return null;
+  const actualDt = new Date(`${actualDateStr}T${actualTimeStr}`);
+  if (isNaN(actualDt.getTime())) return null;
+  const now = new Date();
+  const diffHrs = (now - actualDt) / 3600000;
+  if (diffHrs <= 3 && diffHrs >= -24) {
+    return { value: fmtDatetime(actualDt), rule: '3-Hour Rule (use actual time directly)' };
+  } else if (diffHrs > 3) {
+    const adjusted = new Date(now.getTime() - 2.5 * 3600000);
+    return { value: fmtDatetime(adjusted), rule: '2.5-Hour Rollback (now − 2.5h)' };
+  }
+  return { value: fmtDatetime(actualDt), rule: 'Scheduled (actual not yet reached)' };
+}
+
+// ─── Build ATD/ATA Table ────────────────────────────────────────────────────
+function buildAtdAta() {
+  _atdFiltered = [...ATD_ATA_DATA];
+  renderAtdTable();
+}
+
+function renderAtdTable() {
+  const tbody = document.getElementById('atd-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  _atdFiltered.forEach((row, i) => {
+    const statusHtml = row.status === 'Pending Depart'
+      ? `<span class="atd-status-depart">${row.status}</span>`
+      : row.status === 'Pending Arrival'
+      ? `<span class="atd-status-arrival">${row.status}</span>`
+      : `<span class="atd-status-done">${row.status}</span>`;
+    const tr = document.createElement('tr');
+    tr.dataset.idx = i;
+    tr.innerHTML = `
+      <td><input type="checkbox" class="row-chk atd-row-chk" data-idx="${i}" onclick="atdRowCheck(this)"></td>
+      <td style="font-weight:600;color:var(--accent)">${row.mawb}</td>
+      <td style="font-size:11px;color:#64748b;max-width:140px;overflow:hidden;text-overflow:ellipsis">${row.hawb}</td>
+      <td>${row.customer}</td>
+      <td>${row.airline}</td>
+      <td>${row.flight}</td>
+      <td>${statusHtml}</td>
+      <td>${row.pol}</td>
+      <td>${row.pod}</td>
+      <td>${row.slaDate}</td>
+      <td>${row.etdOrig}</td>
+      <td style="color:${row.ata?'#15803d':row.atd?'#c2410c':'inherit'}">${row.eta}</td>
+    `;
+    tr.addEventListener('dblclick', () => { openAtdModal(_atdModalType, i); });
+    tbody.appendChild(tr);
+  });
+  const info = document.getElementById('atd-pg-info');
+  if (info) info.textContent = `${_atdFiltered.length} records`;
+}
+
+function filterAtdTable() {
+  const cust = document.getElementById('atd-cust-filter')?.value || '';
+  const pod  = document.getElementById('atd-pod-filter')?.value || '';
+  // Per-column filters
+  const filters = [];
+  document.querySelectorAll('#atd-table .hdr-filter .ic-filter').forEach((el, i) => {
+    filters.push(el.value.toLowerCase().trim());
+  });
+  const colKeys = ['','mawb','hawb','customer','airline','flight','status','pol','pod'];
+  _atdFiltered = ATD_ATA_DATA.filter(r => {
+    if (cust && r.customer !== cust) return false;
+    if (pod && r.pod !== pod) return false;
+    for (let i = 1; i < colKeys.length; i++) {
+      const key = colKeys[i];
+      const fv = filters[i] || '';
+      if (fv && key && !String(r[key] || '').toLowerCase().includes(fv)) return false;
+    }
+    return true;
+  });
+  renderAtdTable();
+}
+
+function clearAtdSearch() {
+  document.getElementById('atd-cust-filter').value = '';
+  document.getElementById('atd-pod-filter').value = '';
+  document.querySelectorAll('#atd-table .hdr-filter .ic-filter').forEach(el => { el.value = ''; });
+  _atdFiltered = [...ATD_ATA_DATA];
+  renderAtdTable();
+}
+
+function atdSelectAll(cb) {
+  document.querySelectorAll('.atd-row-chk').forEach(c => { c.checked = cb.checked; c.closest('tr').classList.toggle('atd-row-selected', cb.checked); });
+}
+function atdRowCheck(cb) {
+  cb.closest('tr').classList.toggle('atd-row-selected', cb.checked);
+}
+
+// ─── Single ATD/ATA Modal ───────────────────────────────────────────────────
+function openAtdModal(type, rowIdx) {
+  _atdModalType = type || 'atd';
+  const label = type === 'ata' ? 'ATA' : 'ATD';
+  document.getElementById('atd-modal-title').textContent = `Update ${label}`;
+  document.getElementById('atd-m-type-label').textContent = `Captured ${label}`;
+  document.getElementById('atd-m-input-label').textContent = label;
+
+  if (rowIdx !== undefined) {
+    _atdModalRow = rowIdx;
+    const r = _atdFiltered[rowIdx];
+    document.getElementById('atd-m-mawb').textContent = r.mawb;
+    document.getElementById('atd-m-pol').textContent = r.pol;
+    document.getElementById('atd-m-pod').textContent = r.pod;
+    document.getElementById('atd-m-etd').textContent = r.etdOrig;
+    document.getElementById('atd-m-captured').textContent = type === 'ata' ? (r.ata || '—') : (r.atd || '—');
+  } else {
+    // Use first selected row
+    const sel = document.querySelector('.atd-row-chk:checked');
+    if (!sel) { alert('Please select a shipment row first.'); return; }
+    _atdModalRow = parseInt(sel.dataset.idx);
+    const r = _atdFiltered[_atdModalRow];
+    document.getElementById('atd-m-mawb').textContent = r.mawb;
+    document.getElementById('atd-m-pol').textContent = r.pol;
+    document.getElementById('atd-m-pod').textContent = r.pod;
+    document.getElementById('atd-m-etd').textContent = r.etdOrig;
+    document.getElementById('atd-m-captured').textContent = type === 'ata' ? (r.ata || '—') : (r.atd || '—');
+  }
+  document.getElementById('atd-m-date').value = '';
+  document.getElementById('atd-m-time').value = '';
+  document.getElementById('atd-suggest-box').style.display = 'none';
+  openModal('modal-atd-update');
+}
+
+function recalcAtdSuggest() {
+  const d = document.getElementById('atd-m-date').value;
+  const t = document.getElementById('atd-m-time').value;
+  const box = document.getElementById('atd-suggest-box');
+  const result = calcTimeRule(d, t);
+  if (result) {
+    box.style.display = 'block';
+    document.getElementById('atd-suggest-val').textContent = result.value;
+    document.getElementById('atd-suggest-rule').textContent = `(${result.rule})`;
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+function useAtdSuggest() {
+  const suggested = document.getElementById('atd-suggest-val').textContent;
+  if (!suggested) return;
+  const [datePart, timePart] = suggested.split(' ');
+  document.getElementById('atd-m-date').value = datePart;
+  document.getElementById('atd-m-time').value = timePart ? timePart.substring(0,5) : '';
+}
+
+function saveAtdAta() {
+  const d = document.getElementById('atd-m-date').value;
+  const t = document.getElementById('atd-m-time').value;
+  if (!d || !t) { alert('Please enter date and time.'); return; }
+  // Apply time rule to get the final value
+  const result = calcTimeRule(d, t) || { value: `${d} ${t}:00` };
+  const finalVal = result.value;
+  const r = _atdFiltered[_atdModalRow];
+  // Update in ATD_ATA_DATA
+  const orig = ATD_ATA_DATA.find(x => x.mawb === r.mawb);
+  if (orig) {
+    if (_atdModalType === 'ata') { orig.ata = finalVal; orig.status = 'Completed'; }
+    else { orig.atd = finalVal; if (orig.status === 'Pending Depart') orig.status = 'Pending Arrival'; }
+  }
+  closeModal('modal-atd-update');
+  filterAtdTable();
+  showToast(`${_atdModalType.toUpperCase()} updated: ${r.mawb} → ${finalVal}`);
+}
+
+// ─── Batch ATD/ATA ──────────────────────────────────────────────────────────
+function batchUpdateAtdAta(type) {
+  _batchModalType = type;
+  const checked = Array.from(document.querySelectorAll('.atd-row-chk:checked'));
+  if (checked.length < 2) { alert('Select 2 or more shipments with the same airline + flight + ETA date for batch update.'); return; }
+  const rows = checked.map(c => _atdFiltered[parseInt(c.dataset.idx)]);
+  // Validate same airline + flight + ETA date
+  const firstFlight = rows[0].flight;
+  const firstAirline = rows[0].airline;
+  const firstEtaDate = rows[0].eta.substring(0, 10);
+  const mismatch = rows.find(r => r.flight !== firstFlight || r.airline !== firstAirline || r.eta.substring(0,10) !== firstEtaDate);
+  if (mismatch) { alert('Batch update requires all selected rows to have the same Airline, Flight No, and ETA date.'); return; }
+  _batchSelectedRows = rows;
+  const label = type === 'ata' ? 'ATA' : 'ATD';
+  document.getElementById('batch-atd-title').textContent = `Batch Update ${label}`;
+  document.getElementById('batch-atd-label').textContent = label;
+  document.getElementById('batch-atd-group-info').innerHTML =
+    `<b>Airline:</b> ${firstAirline} &nbsp;|&nbsp; <b>Flight:</b> ${firstFlight} &nbsp;|&nbsp; <b>ETA date:</b> ${firstEtaDate}<br>` +
+    `<b>${rows.length} shipments selected:</b> ${rows.map(r=>r.mawb).join(', ')}`;
+  document.getElementById('batch-atd-date').value = '';
+  document.getElementById('batch-atd-time').value = '';
+  document.getElementById('batch-suggest-box').style.display = 'none';
+  openModal('modal-batch-atd');
+}
+
+function recalcBatchSuggest() {
+  const d = document.getElementById('batch-atd-date').value;
+  const t = document.getElementById('batch-atd-time').value;
+  const box = document.getElementById('batch-suggest-box');
+  const result = calcTimeRule(d, t);
+  if (result) {
+    box.style.display = 'block';
+    document.getElementById('batch-suggest-val').textContent = result.value;
+    document.getElementById('batch-suggest-rule').textContent = `(${result.rule})`;
+  } else { box.style.display = 'none'; }
+}
+function useBatchSuggest() {
+  const v = document.getElementById('batch-suggest-val').textContent;
+  if (!v) return;
+  const [datePart, timePart] = v.split(' ');
+  document.getElementById('batch-atd-date').value = datePart;
+  document.getElementById('batch-atd-time').value = timePart ? timePart.substring(0,5) : '';
+}
+function saveBatchAtdAta() {
+  const d = document.getElementById('batch-atd-date').value;
+  const t = document.getElementById('batch-atd-time').value;
+  if (!d || !t) { alert('Please enter date and time.'); return; }
+  const result = calcTimeRule(d, t) || { value: `${d} ${t}:00` };
+  const finalVal = result.value;
+  _batchSelectedRows.forEach(r => {
+    const orig = ATD_ATA_DATA.find(x => x.mawb === r.mawb);
+    if (orig) {
+      if (_batchModalType === 'ata') { orig.ata = finalVal; orig.status = 'Completed'; }
+      else { orig.atd = finalVal; if (orig.status === 'Pending Depart') orig.status = 'Pending Arrival'; }
+    }
+  });
+  closeModal('modal-batch-atd');
+  filterAtdTable();
+  showToast(`Batch ${_batchModalType.toUpperCase()} applied to ${_batchSelectedRows.length} shipments → ${finalVal}`);
+}
+
+// ─── Toast notification ─────────────────────────────────────────────────────
+function showToast(msg, isError) {
+  let t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;max-width:420px;box-shadow:0 4px 16px rgba(0,0,0,.18);transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = isError ? '#fee2e2' : '#dcfce7';
+  t.style.color = isError ? '#b91c1c' : '#15803d';
+  t.style.border = isError ? '1px solid #fca5a5' : '1px solid #86efac';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
+
 const PLACEHOLDER_PAGES = {
-  2:{icon:'fa-tachometer-alt',name:'Update ATD&ATA'},
   3:{icon:'fa-list',name:'DN List'},4:{icon:'fa-map-marker-alt',name:'Delivery Address Confirmation'},
   5:{icon:'fa-globe',name:'Global IWT'},6:{icon:'fa-check',name:'OP-AMS Confirm'},
   7:{icon:'fa-file-alt',name:'Confirm Pre-DO'},8:{icon:'fa-box',name:'Packing List'},
@@ -1624,9 +2067,11 @@ async function loadStats() {
     const strip = document.getElementById('ic-bot-strip');
     if (strip && ic.by_bot_status) {
       const colorMap = { pending:'#f59e0b', arrived:'#22c55e', no_eta:'#8b5cf6', error:'#ef4444' };
-      strip.innerHTML = Object.entries(ic.by_bot_status).map(([k,v]) =>
+      const html = Object.entries(ic.by_bot_status).map(([k,v]) =>
         `<span style="background:${colorMap[k]||'#64748b'};color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">${k}: ${v}</span>`
       ).join('');
+      strip.innerHTML = html;
+      strip.style.display = html ? 'flex' : 'none';
     }
   } catch (_) { /* server offline — silently ignore */ }
 }
@@ -1643,16 +2088,58 @@ async function _upload(endpoint, fileInput, label) {
     const res = await fetch(`${API_BASE}${endpoint}`, { method: 'POST', body: fd });
     const data = await res.json();
     if (res.ok) {
-      alert(`✅ ${label} upload complete\nUpserted: ${data.upserted}  Skipped: ${data.skipped}`);
+      showToast(`✅ ${label} uploaded — Upserted: ${data.upserted}  Skipped: ${data.skipped}`);
       loadStats();
+      if (endpoint.includes('import-confirm')) loadTableFromAPI();
     } else {
-      alert(`❌ Upload failed: ${data.detail || JSON.stringify(data)}`);
+      showToast(`Upload failed: ${data.detail || JSON.stringify(data)}`, true);
     }
   } catch (e) {
-    alert(`❌ Cannot reach server at ${API_BASE}\nStart the mock backend first:\n  uvicorn main:app --port 8090 --reload`);
+    showToast(`Cannot reach server at ${API_BASE} — start the mock backend first (uvicorn main:app --port 8090)`, true);
   } finally {
     if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
   }
+}
+
+async function loadTableFromAPI() {
+  try {
+    const res = await fetch(`${API_BASE}/api/import-confirm?page_size=500`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.items || !data.items.length) return;
+    // Map API rows to IC_PENDING_DATA format and rebuild table
+    const mapped = data.items.map(r => ({
+      status: r.status || 'New',
+      abiStatus: r.abi_query_status || 'New',
+      abiMatch: r.abi_query_match || 'Not Existing',
+      uld: r.uld_no || '',
+      customer: r.hawb_customer || '',
+      mno: r.mawb || '',
+      hno: r.hawb || '',
+      eta: r.eta || '',
+      pol: r.pol || '',
+      pod: r.pod || '',
+      firm: r.firm_code || '',
+      flight: r.flight_no || '',
+      addr: r.address || '',
+      lfd: r.last_free_date || '',
+      wt: r.wt || '',
+      scStatus: r.sc_job_status || '',
+      opRem: r.op_remarks || '',
+      scJob: r.sc_job_no || '',
+      preAlert: r.pre_alert_date || '',
+      isOvs: r.is_ovs_agent || '',
+      qSend: r.query_send_date || '',
+      qUpdate: r.query_update_date || '',
+      operator: r.operator || '',
+      tags: r.tags || ''
+    }));
+    // Splice into IC_PENDING_DATA in-place so pagination stays correct
+    IC_PENDING_DATA.splice(0, IC_PENDING_DATA.length, ...mapped);
+    buildTable();
+    buildListTable();
+    showToast(`Table refreshed — ${mapped.length} rows loaded from API`);
+  } catch (_) { /* API offline — keep static data */ }
 }
 
 function uploadImportConfirm(input) { _upload('/api/upload/import-confirm', input, 'Import Confirm'); }
@@ -1672,7 +2159,9 @@ function uploadPickupReport(input)   { _upload('/api/upload/pickup-report',  inp
   buildMaintainTags();
   populateSelect('sc-firm-sel', FIRM_CODES);
   populateSelect('bu-operator', OPERATORS);
+  buildAtdAta();
   loadStats();
+  loadTableFromAPI();
 })();
 </script>
 </body>
