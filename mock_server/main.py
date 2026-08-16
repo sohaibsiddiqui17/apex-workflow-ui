@@ -8,6 +8,7 @@ Run: uvicorn main:app --host 0.0.0.0 --port 8090 --reload
 
 from __future__ import annotations
 
+import base64
 import io
 import json
 import os
@@ -16,9 +17,10 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -38,6 +40,29 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Frontend static serving  (login.html / index.html live in the parent dir)
+# ─────────────────────────────────────────────────────────────────────────────
+
+FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+
+@app.get("/login.html", include_in_schema=False)
+def frontend_login():
+    return FileResponse(os.path.join(FRONTEND_DIR, "login.html"))
+
+
+@app.get("/index.html", include_in_schema=False)
+@app.get("/app", include_in_schema=False)
+def frontend_app():
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+
+# Mount any extra static assets (images, css overrides) if present
+_assets_dir = os.path.join(FRONTEND_DIR, "assets")
+if os.path.isdir(_assets_dir):
+    app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Database
@@ -284,6 +309,11 @@ def rows_to_dicts(rows) -> List[Dict]:
 # Pydantic schemas
 # ─────────────────────────────────────────────────────────────────────────────
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
 class BotResult(BaseModel):
     ata: Optional[str] = None
     atd: Optional[str] = None
@@ -335,6 +365,29 @@ def _upsert_pickup_report(conn: sqlite3.Connection, row: Dict[str, Any]) -> None
         f" ON CONFLICT(bl_no) DO UPDATE SET {updates}"
     )
     conn.execute(sql, [row[c] for c in cols])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Auth endpoint
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/login", summary="Mock login — returns a bearer token")
+def login(req: LoginRequest):
+    if not req.username or not req.password:
+        raise HTTPException(400, "username and password are required")
+
+    # In a real deployment check against a user table.
+    # For the mock, validate against .env creds if set; otherwise accept anything.
+    env_user = os.environ.get("XCONTROL_USER", "")
+    env_pass = os.environ.get("XCONTROL_PASS", "")
+    if env_user and env_pass:
+        if req.username != env_user or req.password != env_pass:
+            raise HTTPException(401, "Invalid credentials")
+
+    # Issue a trivial mock token (not a real JWT — safe for local test use only)
+    raw = f"{req.username}:{now_iso()}"
+    token = base64.b64encode(raw.encode()).decode()
+    return {"success": True, "token": token, "username": req.username}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -526,6 +579,38 @@ def batch_update_import_confirm(payload: BatchUpdate):
 
     ok = sum(1 for r in results if r["status"] == "ok")
     return {"status": "ok", "updated": ok, "results": results}
+
+
+@app.post("/api/import-confirm/bulk", summary="Bulk upsert scraped rows (bot ingest)")
+def bulk_upsert_import_confirm(rows: List[Dict[str, Any]] = Body(...)):
+    """
+    Accept a JSON array of import-confirm rows scraped by the Playwright bot.
+    Each row must contain at least a 'mawb' field.
+    All other fields are upserted as-is (string values).
+    """
+    upserted = 0
+    skipped = 0
+    errors: List[Dict] = []
+
+    with get_conn() as conn:
+        for row in rows:
+            mawb = str(row.get("mawb", "")).strip()
+            if not mawb or mawb in ("", "nan", "None"):
+                skipped += 1
+                continue
+            row["mawb"] = mawb
+            # Normalise all values to str|None
+            clean = {k: (str(v).strip() if v is not None and str(v).strip() not in ("", "nan", "None") else None)
+                     for k, v in row.items()}
+            clean["mawb"] = mawb  # always keep
+            try:
+                _upsert_import_confirm(conn, clean)
+                upserted += 1
+            except Exception as exc:
+                skipped += 1
+                errors.append({"mawb": mawb, "error": str(exc)})
+
+    return {"status": "ok", "upserted": upserted, "skipped": skipped, "errors": errors}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
