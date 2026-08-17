@@ -68,7 +68,10 @@ if os.path.isdir(_assets_dir):
 # Database
 # ─────────────────────────────────────────────────────────────────────────────
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "apex_mock.db")
+# On Railway a persistent volume is mounted at /data.
+# Locally we keep the DB next to main.py.
+_data_dir = "/data" if os.path.isdir("/data") else os.path.dirname(__file__)
+DB_PATH = os.path.join(_data_dir, "apex_mock.db")
 
 
 def get_conn() -> sqlite3.Connection:
