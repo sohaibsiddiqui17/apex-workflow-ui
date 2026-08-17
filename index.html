@@ -2059,8 +2059,8 @@ async function loadStats() {
     // Update dashboard stat cards
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ?? '—'; };
     set('stat-pending', ic.total ?? '—');
-    set('stat-bot-pending', (ic.by_bot_status || {}).pending ?? '—');
-    set('stat-bot-arrived', (ic.by_bot_status || {}).arrived ?? '—');
+    set('stat-bot-pending', (ic.by_bot_status || {}).pending ?? 0);
+    set('stat-bot-arrived', (ic.by_bot_status || {}).arrived ?? 0);
     set('stat-pickup', pr.total ?? '—');
 
     // Bot status strip on Import Confirm panel
