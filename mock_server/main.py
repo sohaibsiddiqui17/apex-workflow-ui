@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 from fastapi import Body, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -56,13 +56,28 @@ def frontend_login():
 @app.get("/index.html", include_in_schema=False)
 @app.get("/app", include_in_schema=False)
 def frontend_app():
+    """The HPlus admin shell. It hosts every module in its own iframe, the way
+    the real portal does, so this is only layer 2 of 4."""
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
-# Mount any extra static assets (images, css overrides) if present
+@app.get("/", include_in_schema=False)
+def frontend_root():
+    return RedirectResponse(url="/login.html")
+
+
+# Shared stylesheets, fixtures and the el-table renderer.
 _assets_dir = os.path.join(FRONTEND_DIR, "assets")
 if os.path.isdir(_assets_dir):
     app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
+
+# Iframe payloads: home.html, importConfirm.html, updateAtdAta.html,
+# placeholder.html, sso.html. The shell loads these by relative path, so they
+# must be reachable at /frames/<name> for the served build to behave like the
+# file:// build.
+_frames_dir = os.path.join(FRONTEND_DIR, "frames")
+if os.path.isdir(_frames_dir):
+    app.mount("/frames", StaticFiles(directory=_frames_dir), name="frames")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Database
@@ -722,7 +737,7 @@ def reset_db():
 # Health check
 # ─────────────────────────────────────────────────────────────────────────────
 
-@app.get("/", summary="Health check")
+@app.get("/api/health", summary="Health check")
 def root():
     with get_conn() as conn:
         ic = conn.execute("SELECT COUNT(*) FROM import_confirm").fetchone()[0]

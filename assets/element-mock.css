@@ -1,0 +1,609 @@
+/* ---------------------------------------------------------------------------
+   element-mock.css
+   A hand-written subset of Element UI 2.x sufficient to reproduce the class
+   structure of the production X-Control Import Confirm page.
+
+   Class names are deliberately identical to Element UI's real output so that
+   selectors written against this mock also work against production:
+     .el-table__header-wrapper / .el-table__body-wrapper / .el-table__fixed
+     .el-table__cell > .cell
+     .el-table_1_column_N
+     .el-tabs__item / .el-pagination__total / .el-dialog / .el-button--primary
+   --------------------------------------------------------------------------- */
+
+:root {
+  --el-primary:  #409EFF;
+  --el-success:  #67C23A;
+  --el-warning:  #E6A23C;
+  --el-danger:   #F56C6C;
+  --el-info:     #909399;
+  --el-text:     #606266;
+  --el-text-dark:#303133;
+  --el-border:   #DCDFE6;
+  --el-border-l: #EBEEF5;
+  --el-bg:       #FFFFFF;
+  --el-bg-page:  #F5F7FA;
+  --el-row-hover:#F5F7FA;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+               "Microsoft YaHei", Arial, sans-serif;
+  font-size: 14px;
+  color: var(--el-text);
+  background: var(--el-bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-container { padding: 10px; height: 100%; overflow: auto; }
+
+/* ============================ BUTTON ============================ */
+
+.el-button {
+  display: inline-block;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--el-border);
+  color: var(--el-text);
+  -webkit-appearance: none;
+  text-align: center;
+  outline: none;
+  margin: 0;
+  transition: .1s;
+  font-weight: 500;
+  padding: 12px 20px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+.el-button + .el-button { margin-left: 10px; }
+.el-button:hover { color: var(--el-primary); border-color: #c6e2ff; background-color: #ecf5ff; }
+.el-button:focus-visible { outline: 2px solid var(--el-primary); outline-offset: 1px; }
+
+.el-button--medium { padding: 10px 20px; font-size: 14px; border-radius: 4px; }
+.el-button--small  { padding: 9px 15px;  font-size: 12px; border-radius: 3px; }
+.el-button--mini   { padding: 7px 15px;  font-size: 12px; border-radius: 3px; }
+
+.el-button--primary { color: #fff; background-color: var(--el-primary); border-color: var(--el-primary); }
+.el-button--primary:hover { background: #66b1ff; border-color: #66b1ff; color: #fff; }
+.el-button--success { color: #fff; background-color: var(--el-success); border-color: var(--el-success); }
+.el-button--success:hover { background: #85ce61; border-color: #85ce61; color: #fff; }
+.el-button--warning { color: #fff; background-color: var(--el-warning); border-color: var(--el-warning); }
+.el-button--warning:hover { background: #ebb563; border-color: #ebb563; color: #fff; }
+.el-button--danger  { color: #fff; background-color: var(--el-danger);  border-color: var(--el-danger); }
+.el-button--danger:hover { background: #f78989; border-color: #f78989; color: #fff; }
+.el-button--info    { color: #fff; background-color: var(--el-info);    border-color: var(--el-info); }
+
+.el-button--text {
+  border-color: transparent;
+  color: var(--el-primary);
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+.el-button--text:hover { background: transparent; border-color: transparent; color: #66b1ff; }
+
+.el-button.is-disabled,
+.el-button.is-disabled:hover {
+  color: #c0c4cc;
+  cursor: not-allowed;
+  background-image: none;
+  background-color: #fff;
+  border-color: var(--el-border-l);
+}
+.el-button--text.is-disabled { background: transparent; border-color: transparent; }
+
+/* ============================ INPUT ============================ */
+
+.el-input { position: relative; font-size: 14px; display: inline-block; width: 100%; }
+.el-input__inner {
+  -webkit-appearance: none;
+  background-color: #fff;
+  background-image: none;
+  border-radius: 4px;
+  border: 1px solid var(--el-border);
+  box-sizing: border-box;
+  color: var(--el-text);
+  display: inline-block;
+  font-size: inherit;
+  height: 40px;
+  line-height: 40px;
+  outline: none;
+  padding: 0 15px;
+  transition: border-color .2s cubic-bezier(.645,.045,.355,1);
+  width: 100%;
+  font-family: inherit;
+}
+.el-input__inner::placeholder { color: #c0c4cc; }
+.el-input__inner:focus { outline: none; border-color: var(--el-primary); }
+.el-input--medium .el-input__inner { height: 36px; line-height: 36px; }
+.el-input--small  .el-input__inner { height: 32px; line-height: 32px; font-size: 13px; }
+.el-input--mini   .el-input__inner { height: 28px; line-height: 28px; font-size: 12px; padding: 0 8px; }
+.el-input--suffix .el-input__inner { padding-right: 30px; }
+
+.el-input__suffix {
+  position: absolute;
+  height: 100%;
+  right: 5px;
+  top: 0;
+  text-align: center;
+  color: #c0c4cc;
+  transition: all .3s;
+  pointer-events: none;
+  font-size: 12px;
+}
+.el-input__suffix-inner { display: inline-flex; align-items: center; height: 100%; }
+.el-input__icon { font-style: normal; }
+
+.el-textarea__inner {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--el-border);
+  border-radius: 4px;
+  resize: vertical;
+  color: var(--el-text);
+}
+
+/* ============================ SELECT ============================ */
+
+.el-select { display: inline-block; position: relative; width: 100%; }
+.el-select .el-input__inner { cursor: pointer; }
+.el-select__caret {
+  transform: rotate(180deg);
+  display: inline-block;
+  transition: transform .3s;
+}
+.el-select-dropdown {
+  position: absolute;
+  z-index: 2000;
+  border: 1px solid var(--el-border-l);
+  border-radius: 4px;
+  background-color: #fff;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+  margin-top: 4px;
+  max-height: 274px;
+  overflow: auto;
+  min-width: 100%;
+}
+.el-select-dropdown__list { list-style: none; padding: 6px 0; margin: 0; }
+.el-select-dropdown__item {
+  font-size: 14px;
+  padding: 0 20px;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--el-text);
+  height: 34px;
+  line-height: 34px;
+  cursor: pointer;
+}
+.el-select-dropdown__item:hover { background-color: var(--el-row-hover); }
+.el-select-dropdown__item.selected { color: var(--el-primary); font-weight: 700; }
+
+/* ============================ CHECKBOX ============================ */
+
+.el-checkbox {
+  color: var(--el-text-dark);
+  font-weight: 500;
+  font-size: 14px;
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+  white-space: nowrap;
+  user-select: none;
+  margin: 0;
+}
+.el-checkbox__input { white-space: nowrap; cursor: pointer; outline: none; display: inline-block; line-height: 1; position: relative; vertical-align: middle; }
+.el-checkbox__inner {
+  display: inline-block;
+  position: relative;
+  border: 1px solid var(--el-border);
+  border-radius: 2px;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  background-color: #fff;
+  z-index: 1;
+  transition: border-color .25s, background-color .25s;
+}
+.el-checkbox__inner::after {
+  box-sizing: content-box;
+  content: "";
+  border: 1px solid #fff;
+  border-left: 0;
+  border-top: 0;
+  height: 7px;
+  left: 4px;
+  position: absolute;
+  top: 1px;
+  transform: rotate(45deg) scaleY(0);
+  width: 3px;
+  transition: transform .15s ease-in .05s;
+  transform-origin: center;
+}
+.el-checkbox__original {
+  opacity: 0;
+  outline: none;
+  position: absolute;
+  margin: 0;
+  width: 0;
+  height: 0;
+  z-index: -1;
+}
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--el-primary);
+  border-color: var(--el-primary);
+}
+.el-checkbox__input.is-checked .el-checkbox__inner::after { transform: rotate(45deg) scaleY(1); }
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+  background-color: var(--el-primary);
+  border-color: var(--el-primary);
+}
+.el-checkbox__input.is-indeterminate .el-checkbox__inner::before {
+  content: '';
+  position: absolute;
+  display: block;
+  background-color: #fff;
+  height: 2px;
+  transform: scale(.5);
+  left: 0; right: 0; top: 5px;
+}
+.el-checkbox__label { display: inline-block; padding-left: 10px; line-height: 19px; font-size: 14px; }
+
+/* ============================ TABS ============================ */
+
+.el-tabs__header { padding: 0; position: relative; margin: 0 0 15px; }
+.el-tabs__nav-wrap { overflow: hidden; margin-bottom: -1px; position: relative; }
+.el-tabs__nav-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 100%; height: 2px;
+  background-color: var(--el-border-l);
+  z-index: 1;
+}
+.el-tabs__nav-scroll { overflow: hidden; }
+.el-tabs__nav { white-space: nowrap; position: relative; transition: transform .3s; float: left; z-index: 2; }
+.el-tabs__item {
+  padding: 0 20px;
+  height: 40px;
+  box-sizing: border-box;
+  line-height: 40px;
+  display: inline-block;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-dark);
+  position: relative;
+  cursor: pointer;
+}
+.el-tabs__item:hover { color: var(--el-primary); }
+.el-tabs__item.is-active { color: var(--el-primary); }
+.el-tabs__active-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background-color: var(--el-primary);
+  z-index: 1;
+  transition: transform .3s cubic-bezier(.645,.045,.355,1), width .3s;
+  list-style: none;
+}
+.el-tabs__content { overflow: hidden; position: relative; }
+.el-tab-pane[aria-hidden="true"] { display: none; }
+
+/* ============================ TABLE ============================ */
+
+.el-table {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  background-color: #fff;
+  font-size: 14px;
+  color: var(--el-text);
+}
+.el-table::before {
+  content: '';
+  position: absolute;
+  background-color: var(--el-border-l);
+  z-index: 1;
+  left: 0; bottom: 0;
+  width: 100%; height: 1px;
+}
+.el-table--border { border: 1px solid var(--el-border-l); }
+
+.el-table__header-wrapper,
+.el-table__body-wrapper,
+.el-table__footer-wrapper { width: 100%; }
+.el-table__header-wrapper { overflow: hidden; }
+.el-table__body-wrapper { overflow: auto; position: relative; }
+
+.el-table__header,
+.el-table__body,
+.el-table__footer { table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+
+.el-table th.el-table__cell,
+.el-table td.el-table__cell {
+  padding: 8px 0;
+  min-width: 0;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  position: relative;
+  text-align: left;
+  border-bottom: 1px solid var(--el-border-l);
+  border-right: 1px solid var(--el-border-l);
+}
+.el-table th.el-table__cell {
+  user-select: none;
+  background-color: #F5F7FA;
+  color: var(--el-text-dark);
+  font-weight: 500;
+  vertical-align: top;
+  white-space: normal;
+}
+.el-table th.el-table__cell.is-leaf { border-bottom: 1px solid var(--el-border-l); }
+.el-table .cell {
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-all;
+  line-height: 23px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.el-table .is-center { text-align: center; }
+.el-table .is-center .cell { text-align: center; }
+.el-table__row:hover > td.el-table__cell { background-color: var(--el-row-hover); }
+.el-table__row.current-row > td.el-table__cell { background-color: #ecf5ff; }
+
+/* The frozen-column clone. Element UI renders a SECOND full copy of the table
+   here; every cell outside the frozen range carries .is-hidden. This is the
+   single biggest scraping hazard on the real page, so it is reproduced
+   faithfully rather than simplified away. */
+.el-table__fixed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  box-shadow: 0 0 10px rgba(0,0,0,.12);
+  background: #fff;
+}
+.el-table__fixed::before {
+  content: '';
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 100%; height: 1px;
+  background-color: var(--el-border-l);
+  z-index: 4;
+}
+.el-table__fixed-header-wrapper { position: absolute; left: 0; top: 0; z-index: 3; }
+.el-table__fixed-body-wrapper { position: absolute; left: 0; top: 37px; overflow: hidden; z-index: 3; }
+.el-table .el-table__cell.is-hidden > * { visibility: hidden; }
+
+.el-table-column--selection .cell { padding-left: 14px; padding-right: 14px; text-overflow: clip; }
+
+.el-table__empty-block { min-height: 60px; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center; }
+.el-table__empty-text { line-height: 60px; width: 50%; color: var(--el-info); }
+
+.el-table--scrollable-x .el-table__body-wrapper { overflow-x: auto; }
+
+/* Header filter widgets live inside the th, below the label. */
+.hdr-label { display: block; padding: 0 0 4px; font-weight: 600; }
+.hdr-filter { display: block; padding-top: 2px; }
+.hdr-filter .el-input__inner { font-weight: 400; }
+.hdr-range { display: flex; flex-direction: column; gap: 3px; }
+
+/* ============================ LINK ============================ */
+
+.el-link {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  position: relative;
+  text-decoration: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.el-link--primary { color: var(--el-primary); }
+.el-link--primary:hover { color: #66b1ff; }
+.el-link.is-underline:hover::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; height: 0;
+  bottom: 0;
+  border-bottom: 1px solid var(--el-primary);
+}
+.el-link--inner { display: inline-block; }
+.apex_link_mini { font-size: 12px; }
+
+/* ============================ PAGINATION ============================ */
+
+.el-pagination {
+  white-space: nowrap;
+  padding: 2px 5px;
+  color: var(--el-text-dark);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.el-pagination__total { margin-right: 10px; font-weight: 400; color: var(--el-text); font-size: 13px; }
+.el-pagination__sizes { margin: 0 10px 0 0; font-weight: 400; color: var(--el-text-dark); }
+.el-pagination__sizes .el-input { width: 100px; }
+.el-pagination__jump { margin-left: 24px; font-weight: 400; color: var(--el-text); display: inline-flex; align-items: center; gap: 6px; }
+.el-pagination__editor { width: 50px; }
+.el-pagination__rightwrapper { display: flex; align-items: center; }
+
+.el-pager { user-select: none; list-style: none; display: inline-flex; gap: 4px; font-size: 0; padding: 0; margin: 0; }
+.el-pager li {
+  padding: 0 4px;
+  background: #fff;
+  font-size: 13px;
+  min-width: 30px;
+  height: 28px;
+  line-height: 28px;
+  box-sizing: border-box;
+  text-align: center;
+  margin: 0;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid var(--el-border);
+  color: var(--el-text);
+}
+.el-pager li:hover { color: var(--el-primary); }
+.el-pager li.active { background-color: var(--el-primary); color: #fff; border-color: var(--el-primary); cursor: default; }
+
+.btn-prev, .btn-next {
+  background: #fff;
+  border: 1px solid var(--el-border);
+  color: var(--el-text);
+  cursor: pointer;
+  margin: 0;
+  border-radius: 2px;
+  height: 28px;
+  min-width: 30px;
+  font-size: 12px;
+  padding: 0 6px;
+}
+.btn-prev:disabled, .btn-next:disabled { color: #c0c4cc; cursor: not-allowed; }
+
+/* ============================ DIALOG ============================ */
+
+.el-dialog__wrapper {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  overflow: auto;
+  margin: 0;
+  z-index: 2001;
+  background: rgba(0,0,0,.5);
+}
+.el-dialog {
+  position: relative;
+  margin: 15vh auto 50px;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  box-sizing: border-box;
+  width: 50%;
+}
+.el-dialog__header { padding: 20px 20px 10px; }
+.el-dialog__title { line-height: 24px; font-size: 18px; color: var(--el-text-dark); }
+.el-dialog__headerbtn {
+  position: absolute;
+  top: 20px; right: 20px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #909399;
+}
+.el-dialog__headerbtn:hover { color: var(--el-primary); }
+.el-dialog__body { padding: 12px 20px; color: var(--el-text); font-size: 14px; word-break: break-all; }
+.el-dialog__footer { padding: 10px 20px 20px; text-align: right; box-sizing: border-box; }
+
+/* ============================ FORM ============================ */
+
+.el-form-item { margin-bottom: 18px; display: flex; align-items: flex-start; gap: 10px; }
+.el-form-item__label { text-align: right; vertical-align: middle; float: none; font-size: 14px; color: var(--el-text); line-height: 32px; padding: 0 12px 0 0; box-sizing: border-box; width: 140px; flex: 0 0 140px; }
+.el-form-item__content { line-height: 32px; position: relative; font-size: 14px; flex: 1 1 auto; min-width: 0; }
+.el-form-item.is-required .el-form-item__label::before { content: '*'; color: var(--el-danger); margin-right: 4px; }
+
+/* ============================ MISC ============================ */
+
+.el-scrollbar { overflow: hidden; position: relative; }
+.el-scrollbar__wrap { overflow: auto; height: 100%; }
+.el-scrollbar__view { list-style: none; padding: 6px 0; margin: 0; }
+
+.el-tag {
+  background-color: #ecf5ff;
+  border: 1px solid #d9ecff;
+  color: var(--el-primary);
+  display: inline-block;
+  height: 22px;
+  padding: 0 8px;
+  line-height: 20px;
+  font-size: 12px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  margin: 1px 3px 1px 0;
+}
+.el-tag--success { background-color: #f0f9eb; border-color: #e1f3d8; color: var(--el-success); }
+.el-tag--warning { background-color: #fdf6ec; border-color: #faecd8; color: var(--el-warning); }
+.el-tag--danger  { background-color: #fef0f0; border-color: #fde2e2; color: var(--el-danger); }
+.el-tag--info    { background-color: #f4f4f5; border-color: #e9e9eb; color: var(--el-info); }
+
+.el-alert {
+  padding: 8px 16px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.el-alert--info    { background-color: #f4f4f5; color: var(--el-info); }
+.el-alert--success { background-color: #f0f9eb; color: var(--el-success); }
+.el-alert--warning { background-color: #fdf6ec; color: var(--el-warning); }
+
+.el-message {
+  min-width: 320px;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 1px solid #EBEEF5;
+  position: fixed;
+  left: 50%;
+  top: 20px;
+  transform: translateX(-50%);
+  background-color: #edf2fc;
+  transition: opacity .3s, transform .4s;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  z-index: 3000;
+}
+.el-message--success { background-color: #f0f9eb; border-color: #e1f3d8; color: var(--el-success); }
+.el-message--error   { background-color: #fef0f0; border-color: #fde2e2; color: var(--el-danger); }
+.el-message__content { padding: 0; font-size: 14px; line-height: 1; }
+
+/* Toolbar row shared by both grid frames */
+.apex-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 0 0 10px;
+}
+.apex-toolbar .el-button + .el-button { margin-left: 0; }
+.apex-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 0 0 10px;
+}
+.apex-filterbar label { font-size: 13px; color: var(--el-text); }
+.apex-filterbar .el-select, .apex-filterbar .el-input { width: 190px; }

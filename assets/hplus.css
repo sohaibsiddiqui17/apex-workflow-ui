@@ -1,0 +1,249 @@
+/* ---------------------------------------------------------------------------
+   hplus.css
+   Subset of the HPlus / AdminLTE admin theme the production X-Control shell
+   is built on (Bootstrap 3 + metisMenu + contabs.js).
+
+   Class names match production so that shell-level selectors are portable:
+     #wrapper / #page-wrapper / nav.navbar-static-side / ul#side-menu
+     a.J_menuItem[data-index] / a.J_menuTab[data-id] / iframe.J_iframe
+     .content-tabs / .J_tabLeft / .J_tabRight / .J_tabClose / .J_tabExit
+   --------------------------------------------------------------------------- */
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  color: #676a6c;
+  background: #2f4050;
+  overflow: hidden;
+}
+
+#wrapper { display: flex; height: 100vh; width: 100%; }
+
+/* ============================ SIDEBAR ============================ */
+
+.navbar-static-side {
+  width: 220px;
+  flex: 0 0 220px;
+  background: #2f4050;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: flex-basis .2s ease, width .2s ease;
+}
+body.mini-navbar .navbar-static-side { width: 70px; flex-basis: 70px; }
+body.mini-navbar .nav-label,
+body.mini-navbar .arrow,
+body.mini-navbar .nav-second-level,
+body.mini-navbar .nav-third-level,
+body.mini-navbar .profile-element .user-text { display: none !important; }
+
+.nav-header { padding: 26px 22px; background: #2f4050; }
+.profile-element { color: #a7b1c2; font-size: 13px; }
+.profile-element .user-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: #1ab394; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; margin-bottom: 9px;
+}
+.profile-element strong { color: #fff; display: block; font-size: 13px; }
+.profile-element .text-muted { color: #8095a8; font-size: 11px; }
+
+ul#side-menu, .nav-second-level, .nav-third-level { list-style: none; margin: 0; padding: 0; }
+
+#side-menu > li > a {
+  padding: 12px 20px;
+  color: #a7b1c2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 4px solid transparent;
+}
+#side-menu > li > a:hover { color: #fff; background: #293846; }
+#side-menu > li.active > a { color: #fff; background: #293846; border-left-color: #1ab394; }
+#side-menu > li > a > i.fa { width: 15px; text-align: center; font-size: 13px; }
+.nav-label { flex: 1 1 auto; }
+.arrow { font-size: 10px; transition: transform .2s; }
+li.active > a > .arrow, a[aria-expanded="true"] > .arrow { transform: rotate(90deg); }
+
+.nav-second-level { background: #293846; }
+.nav-second-level.collapse { display: none; }
+.nav-second-level.collapse.in { display: block; }
+.nav-second-level > li > a {
+  padding: 8px 20px 8px 44px;
+  color: #a7b1c2;
+  display: block;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nav-second-level > li > a:hover { color: #fff; background: #21313d; }
+.nav-second-level > li > a.tab-menu-selected { color: #fff; background: #1ab394; }
+
+.nav-third-level { background: #21313d; }
+.nav-third-level.collapse { display: none; }
+.nav-third-level.collapse.in { display: block; }
+.nav-third-level > li > a {
+  padding: 7px 20px 7px 60px;
+  color: #98a6b3;
+  display: block;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nav-third-level > li > a:hover { color: #fff; background: #1a2833; }
+.nav-third-level > li > a.tab-menu-selected { color: #fff; background: #1ab394; }
+
+/* ============================ PAGE ============================ */
+
+#page-wrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f3f3f4;
+  height: 100vh;
+}
+
+.navbar-static-top {
+  background: #fff;
+  border-bottom: 1px solid #e7eaec;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+  flex: 0 0 46px;
+}
+.navbar-minimalize {
+  background: #1ab394;
+  border: 1px solid #1ab394;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 12px;
+}
+.navbar-minimalize:hover { background: #18a689; }
+.navbar-form-custom { flex: 1 1 auto; max-width: 420px; }
+.navbar-form-custom input {
+  border: none;
+  border-bottom: 1px solid #e7eaec;
+  padding: 6px 10px;
+  width: 100%;
+  font-size: 12px;
+  outline: none;
+  background: transparent;
+}
+.navbar-top-links { list-style: none; display: flex; gap: 16px; margin: 0 0 0 auto; padding: 0; align-items: center; }
+.navbar-top-links a { color: #676a6c; text-decoration: none; font-size: 12px; cursor: pointer; }
+.navbar-top-links a:hover { color: #1ab394; }
+
+/* ============================ TAB STRIP ============================ */
+
+.content-tabs {
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border-bottom: 1px solid #e7eaec;
+  height: 37px;
+  flex: 0 0 37px;
+  overflow: hidden;
+}
+.content-tabs .navbar-minimalize {
+  border-radius: 0;
+  background: #fff;
+  border: none;
+  border-right: 1px solid #e7eaec;
+  color: #676a6c;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+}
+.roll-nav {
+  background: #fff;
+  border: none;
+  border-right: 1px solid #e7eaec;
+  color: #676a6c;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.roll-nav:hover { background: #f3f3f4; color: #1ab394; }
+.roll-right { border-right: none; border-left: 1px solid #e7eaec; }
+
+.page-tabs { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.page-tabs-content { display: flex; align-items: stretch; height: 100%; transition: margin-left .2s; }
+.J_menuTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-right: 1px solid #e7eaec;
+  color: #676a6c;
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  background: #fff;
+}
+.J_menuTab:hover { background: #f3f3f4; }
+.J_menuTab.active { background: #1ab394; color: #fff; border-right-color: #1ab394; }
+.J_menuTab .fa-times-circle { font-size: 12px; opacity: .65; }
+.J_menuTab .fa-times-circle:hover { opacity: 1; }
+
+.btn-group { position: relative; display: flex; }
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #e7eaec;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  min-width: 168px;
+  z-index: 900;
+  display: none;
+}
+.dropdown-menu.open { display: block; }
+.dropdown-menu li a {
+  display: block;
+  padding: 7px 16px;
+  color: #676a6c;
+  text-decoration: none;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dropdown-menu li a:hover { background: #f3f3f4; color: #1ab394; }
+.dropdown-menu li.divider { height: 1px; background: #e7eaec; margin: 4px 0; }
+
+/* ============================ IFRAME HOST ============================ */
+
+.J_mainContent {
+  flex: 1 1 auto;
+  position: relative;
+  background: #f3f3f4;
+  min-height: 0;
+}
+.J_iframe {
+  border: none;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #f3f3f4;
+}
+
+.fa { font-style: normal; }

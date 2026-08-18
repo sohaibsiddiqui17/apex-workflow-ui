@@ -1,0 +1,9 @@
+*.db
+*.db-shm
+*.db-wal
+.env
+.playwright/
+.venv/
+__pycache__/
+mock_server/.env
+venv/

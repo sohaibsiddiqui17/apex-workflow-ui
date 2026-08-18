@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import Confirm</title>
+<!-- Mirrors https://xcimport.apexworkflow.com/importConfirm , which the shell
+     loads into iframe[name="iframe16"]. -->
+<link rel="stylesheet" href="../assets/element-mock.css">
+</head>
+<body>
+
+<div id="app" data-v-47b11b5c="">
+  <div class="app-container" data-v-47b11b5c="">
+
+    <!-- ==================== TABS ==================== -->
+    <div class="el-tabs el-tabs--top" data-v-47b11b5c="">
+      <div class="el-tabs__header is-top">
+        <div class="el-tabs__nav-wrap is-top">
+          <div class="el-tabs__nav-scroll">
+            <div role="tablist" class="el-tabs__nav is-top" style="transform: translateX(0px);">
+              <div class="el-tabs__active-bar is-top" style="width: 168px; transform: translateX(0px);"></div>
+              <div id="tab-1" aria-controls="pane-1" role="tab" aria-selected="true" tabindex="0"
+                   class="el-tabs__item is-top is-active">Import Confirm Pending</div>
+              <div id="tab-2" aria-controls="pane-2" role="tab" tabindex="-1"
+                   class="el-tabs__item is-top">Import Confirm List</div>
+              <div id="tab-3" aria-controls="pane-3" role="tab" tabindex="-1"
+                   class="el-tabs__item is-top">ABI Query</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="el-tabs__content">
+
+        <!-- ---------- PANE 1: Import Confirm Pending ---------- -->
+        <div role="tabpanel" id="pane-1" aria-labelledby="tab-1" class="el-tab-pane" data-v-47b11b5c="">
+
+          <div class="apex-toolbar" data-v-47b11b5c="">
+            <button type="button" class="el-button el-button--warning el-button--small" data-action="clear-all-search">
+              <span>Clear All Search</span>
+            </button>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="create-job-to-sc">
+              <span>Create Job to SC</span>
+            </button>
+            <button type="button" class="el-button el-button--success el-button--small" data-action="confirm">
+              <span>Confirm</span>
+            </button>
+            <button type="button" class="el-button el-button--danger el-button--small" data-action="new-import-job">
+              <span>New Import Job</span>
+            </button>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="account-mapping">
+              <span>Account Mapping</span>
+            </button>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="get-sc-job">
+              <span>Get SC Job</span>
+            </button>
+            <button type="button" class="el-button el-button--danger el-button--small" data-action="delete-sc-job">
+              <span>Delete SC Job</span>
+            </button>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="batch-update">
+              <span>Batch Update</span>
+            </button>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="abi-query">
+              <span>ABI Query</span>
+            </button>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="update-tags">
+              <span>Update Tags</span>
+            </button>
+            <button type="button" class="el-button el-button--warning el-button--small" data-action="maintain-tags">
+              <span>Maintain Tags</span>
+            </button>
+          </div>
+
+          <div class="el-alert el-alert--info" id="ic-selection-note" style="display:none;">
+            <span class="el-alert__content"><span id="ic-selection-count">0</span> row(s) selected</span>
+          </div>
+
+          <!-- el-table is rendered by assets/el-table.js into this node -->
+          <div id="ic-table" data-v-47b11b5c=""></div>
+
+          <div data-v-47b11b5c="">
+            <div class="el-pagination" data-v-47b11b5c="">
+              <div class="el-pagination__rightwrapper">
+                <span class="el-pagination__total">Total 0</span>
+              </div>
+              <span class="el-pagination__sizes">
+                <div class="el-select el-select--mini">
+                  <div class="el-input el-input--mini el-input--suffix">
+                    <input type="text" readonly="readonly" autocomplete="off" placeholder="Select"
+                           class="el-input__inner" value="50/page">
+                    <span class="el-input__suffix"><span class="el-input__suffix-inner">
+                      <i class="el-select__caret el-input__icon el-icon-arrow-up"></i>
+                    </span></span>
+                  </div>
+                  <div class="el-select-dropdown el-popper" style="display: none; min-width: 110px;">
+                    <div class="el-scrollbar"><div class="el-scrollbar__wrap">
+                      <ul class="el-scrollbar__view el-select-dropdown__list">
+                        <li class="el-select-dropdown__item selected"><span>50/page</span></li>
+                        <li class="el-select-dropdown__item"><span>100/page</span></li>
+                        <li class="el-select-dropdown__item"><span>200/page</span></li>
+                        <li class="el-select-dropdown__item"><span>300/page</span></li>
+                        <li class="el-select-dropdown__item"><span>500/page</span></li>
+                      </ul>
+                    </div></div>
+                  </div>
+                </div>
+              </span>
+              <button type="button" class="btn-prev" disabled><i class="el-icon el-icon-arrow-left">&lsaquo;</i></button>
+              <ul class="el-pager"><li class="number active">1</li></ul>
+              <button type="button" class="btn-next"><i class="el-icon el-icon-arrow-right">&rsaquo;</i></button>
+              <span class="el-pagination__jump">
+                Go to
+                <div class="el-input el-input--mini el-pagination__editor is-in-pagination">
+                  <input type="number" autocomplete="off" min="1" class="el-input__inner" value="1">
+                </div>
+              </span>
+              <button type="button" class="el-button el-button--primary el-button--small" data-action="new-shipment">
+                <span>New Shipment</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------- PANE 2: Import Confirm List ---------- -->
+        <div role="tabpanel" id="pane-2" aria-labelledby="tab-2" aria-hidden="true"
+             class="el-tab-pane" style="display:none;" data-v-47b11b5c="">
+          <div class="apex-toolbar">
+            <button type="button" class="el-button el-button--warning el-button--small" data-action="clear-all-search">
+              <span>Clear All Search</span>
+            </button>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="export-excel">
+              <span>Export Excel</span>
+            </button>
+          </div>
+          <div id="ic-list-table"></div>
+          <div class="el-pagination">
+            <span class="el-pagination__total" id="ic-list-total">Total 0</span>
+          </div>
+        </div>
+
+        <!-- ---------- PANE 3: ABI Query ---------- -->
+        <div role="tabpanel" id="pane-3" aria-labelledby="tab-3" aria-hidden="true"
+             class="el-tab-pane" style="display:none;" data-v-47b11b5c="">
+          <div class="apex-filterbar">
+            <label>M#</label>
+            <div class="el-input el-input--small"><input type="text" class="el-input__inner" placeholder="Please enter the search" id="abi-mawb"></div>
+            <label>Firm Code</label>
+            <div class="el-input el-input--small"><input type="text" class="el-input__inner" placeholder="Please enter the search" id="abi-firm"></div>
+            <button type="button" class="el-button el-button--primary el-button--small" data-action="abi-search"><span>Search</span></button>
+            <button type="button" class="el-button el-button--default el-button--small" data-action="abi-reset"><span>Reset</span></button>
+          </div>
+          <div id="abi-table"></div>
+          <div class="el-pagination">
+            <span class="el-pagination__total" id="abi-total">Total 0</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DIALOGS ==================== -->
+  <!-- Pre-rendered and hidden, exactly as the production page keeps its 68
+       el-dialog nodes in the DOM at all times. -->
+
+  <div class="el-dialog__wrapper" id="dlg-account-mapping" style="display: none;">
+    <div role="dialog" aria-modal="true" aria-label="Account Mapping" class="el-dialog" style="width: 720px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title">Account Mapping</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <div class="el-form-item">
+          <label class="el-form-item__label">HAWB Customer</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small"><input type="text" class="el-input__inner" placeholder="Please enter the search"></div>
+          </div>
+        </div>
+        <div class="el-form-item">
+          <label class="el-form-item__label">Account Code</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small"><input type="text" class="el-input__inner" placeholder="Please enter the search"></div>
+          </div>
+        </div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium"><span>Save</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="el-dialog__wrapper" id="dlg-get-sc-job" style="display: none;">
+    <div role="dialog" aria-modal="true" aria-label="Get SC Job" class="el-dialog" style="width: 640px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title">Get SC Job</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <div class="el-form-item">
+          <label class="el-form-item__label">M#</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small"><input type="text" class="el-input__inner" id="scjob-mawb"></div>
+          </div>
+        </div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium"><span>Get</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="el-dialog__wrapper" id="dlg-batch-update" style="display: none;">
+    <div role="dialog" aria-modal="true" aria-label="Batch Update" class="el-dialog" style="width: 640px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title">Batch Update</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <p><span id="batch-count">0</span> row(s) selected.</p>
+        <div class="el-form-item">
+          <label class="el-form-item__label">Operator</label>
+          <div class="el-form-item__content">
+            <div class="el-select el-select--small" id="batch-operator"></div>
+          </div>
+        </div>
+        <div class="el-form-item">
+          <label class="el-form-item__label">OP Remarks</label>
+          <div class="el-form-item__content">
+            <textarea rows="3" class="el-textarea__inner" id="batch-remarks"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium" data-action="batch-update-apply"><span>Update</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="el-dialog__wrapper" id="dlg-update-tags" style="display: none;">
+    <div role="dialog" aria-modal="true" aria-label="Update Tags" class="el-dialog" style="width: 640px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title">Update Tags</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <div class="apex-toolbar">
+          <button type="button" class="el-button el-button--text el-button--mini" data-tag-mode="add"><span>Add Tags</span></button>
+          <button type="button" class="el-button el-button--text el-button--mini" data-tag-mode="remove"><span>Remove Tags</span></button>
+          <button type="button" class="el-button el-button--text el-button--mini" data-tag-mode="replace"><span>Replace Tags</span></button>
+        </div>
+        <div id="tag-checklist" style="max-height:260px;overflow:auto;"></div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium" data-action="apply-tags"><span>Apply to Selected</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="el-dialog__wrapper" id="dlg-maintain-tags" style="display: none;">
+    <div role="dialog" aria-modal="true" aria-label="Maintain Tags" class="el-dialog" style="width: 560px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title">Maintain Tags</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <div class="apex-filterbar">
+          <div class="el-input el-input--small"><input type="text" class="el-input__inner" id="new-tag" placeholder="Please enter the search"></div>
+          <button type="button" class="el-button el-button--text el-button--mini" data-action="add-tag"><span>Add New Tag</span></button>
+        </div>
+        <div id="maintain-tag-list" style="max-height:300px;overflow:auto;"></div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Close</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="el-dialog__wrapper" id="dlg-new-import-job" style="display: none;">
+    <div role="dialog" aria-modal="true" aria-label="New Import Job" class="el-dialog" style="width: 680px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title">New Import Job</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <div class="el-form-item is-required">
+          <label class="el-form-item__label">M#</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small"><input type="text" class="el-input__inner" id="nij-mawb"></div>
+          </div>
+        </div>
+        <div class="el-form-item">
+          <label class="el-form-item__label">Flight No</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small"><input type="text" class="el-input__inner" id="nij-flight"></div>
+          </div>
+        </div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium"><span>Save</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-host"></div>
+</div>
+
+<script src="../assets/apex-enums.js"></script>
+<script src="../assets/apex-data.js"></script>
+<script src="../assets/el-table.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var SCOPE   = 'data-v-47b11b5c';
+  var rows    = APEX_DATA.IC_PENDING_DATA.slice();
+  var columns = APEX_DATA.IC_COLUMNS;
+  var selected = [];
+
+  /* ------------------------------------------------------------ pagination */
+
+  var pageSize = 50;
+  var page     = 1;
+
+  function pageCount() { return Math.max(1, Math.ceil(rows.length / pageSize)); }
+
+  function pagedRows() {
+    var start = (page - 1) * pageSize;
+    return rows.slice(start, start + pageSize);
+  }
+
+  function renderPager() {
+    var total = rows.length;
+    var pages = pageCount();
+
+    document.querySelector('.el-pagination__total').textContent = 'Total ' + total;
+
+    var pager = document.querySelector('#pane-1 .el-pager');
+    var html = '';
+    for (var i = 1; i <= pages; i++) {
+      html += '<li class="number' + (i === page ? ' active' : '') + '">' + i + '</li>';
+    }
+    pager.innerHTML = html;
+
+    document.querySelector('#pane-1 .btn-prev').disabled = page <= 1;
+    document.querySelector('#pane-1 .btn-next').disabled = page >= pages;
+    document.querySelector('#pane-1 .el-pagination__editor .el-input__inner').value = page;
+  }
+
+  function goToPage(n) {
+    var pages = pageCount();
+    page = Math.min(Math.max(1, n), pages);
+    selected = [];
+    renderMain();
+  }
+
+  /* ---------------------------------------------------------------- table */
+
+  function renderMain() {
+    var offset = (page - 1) * pageSize;
+    ElTableMock.render({
+      mount: document.getElementById('ic-table'),
+      columns: columns,
+      rows: pagedRows(),
+      tableIndex: 1,
+      scope: SCOPE,
+      fixedCount: 1,
+      bodyHeight: 424,
+      onSelect: function (idxs) {
+        // indexes come back relative to the visible page
+        selected = idxs.map(function (i) { return offset + i; });
+        var note = document.getElementById('ic-selection-note');
+        document.getElementById('ic-selection-count').textContent = selected.length;
+        note.style.display = selected.length ? '' : 'none';
+      }
+    });
+    renderPager();
+  }
+
+  function renderList() {
+    ElTableMock.render({
+      mount: document.getElementById('ic-list-table'),
+      columns: columns,
+      rows: rows.filter(function (r) { return r.scStatus === 'Existing'; }),
+      tableIndex: 2,
+      scope: SCOPE,
+      fixedCount: 1,
+      bodyHeight: 380
+    });
+    document.getElementById('ic-list-total').textContent =
+      'Total ' + rows.filter(function (r) { return r.scStatus === 'Existing'; }).length;
+  }
+
+  function renderAbi() {
+    var abiCols = [
+      { key: null,        label: '',                  width: 50,  type: 'selection' },
+      { key: 'mno',       label: 'M#',                width: 160, filter: 'text', type: 'link' },
+      { key: 'firm',      label: 'Firm Code',         width: 130, filter: 'text' },
+      { key: 'abiStatus', label: 'ABI Query Status',  width: 160, filter: 'select', options: APEX_ENUMS.ABI_STATUS },
+      { key: 'abiMatch',  label: 'ABI Query Match',   width: 150, filter: 'select', options: APEX_ENUMS.ABI_MATCH },
+      { key: 'qSend',     label: 'Query Send Date',   width: 220, filter: 'daterange' },
+      { key: 'qUpdate',   label: 'Query Update Date', width: 220, filter: 'daterange' },
+      { key: 'operator',  label: 'Operator',          width: 150, filter: 'text' }
+    ];
+    ElTableMock.render({
+      mount: document.getElementById('abi-table'),
+      columns: abiCols,
+      rows: rows,
+      tableIndex: 3,
+      scope: SCOPE,
+      fixedCount: 1,
+      bodyHeight: 380
+    });
+    document.getElementById('abi-total').textContent = 'Total ' + rows.length;
+  }
+
+  /* ----------------------------------------------------------------- tabs */
+
+  function activateTab(tabId) {
+    ['tab-1', 'tab-2', 'tab-3'].forEach(function (id) {
+      var tab  = document.getElementById(id);
+      var pane = document.getElementById(id.replace('tab', 'pane'));
+      var on   = id === tabId;
+      tab.classList.toggle('is-active', on);
+      tab.setAttribute('tabindex', on ? '0' : '-1');
+      if (on) tab.setAttribute('aria-selected', 'true');
+      else tab.removeAttribute('aria-selected');
+      pane.style.display = on ? '' : 'none';
+      if (on) pane.removeAttribute('aria-hidden');
+      else pane.setAttribute('aria-hidden', 'true');
+    });
+    if (tabId === 'tab-2') renderList();
+    if (tabId === 'tab-3') renderAbi();
+  }
+
+  document.querySelectorAll('.el-tabs__item').forEach(function (t) {
+    t.addEventListener('click', function () { activateTab(t.id); });
+  });
+
+  /* --------------------------------------------------------------- toasts */
+
+  function toast(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'el-message el-message--' + (type || 'success');
+    el.innerHTML = '<p class="el-message__content">' + ElTableMock.esc(msg) + '</p>';
+    document.getElementById('toast-host').appendChild(el);
+    setTimeout(function () { el.remove(); }, 2600);
+  }
+
+  /* -------------------------------------------------------------- dialogs */
+
+  function openDialog(id) { document.getElementById(id).style.display = ''; }
+  function closeDialog(el) { el.closest('.el-dialog__wrapper').style.display = 'none'; }
+
+  document.querySelectorAll('[data-close]').forEach(function (b) {
+    b.addEventListener('click', function () { closeDialog(b); });
+  });
+
+  function buildTagChecklist() {
+    document.getElementById('tag-checklist').innerHTML = APEX_ENUMS.TAGS.map(function (t) {
+      return '<label class="el-checkbox" style="display:block;padding:4px 0;">' +
+               '<span class="el-checkbox__input"><span class="el-checkbox__inner"></span>' +
+               '<input type="checkbox" class="el-checkbox__original" value="' + ElTableMock.esc(t) + '"></span>' +
+               '<span class="el-checkbox__label">' + ElTableMock.esc(t) + '</span>' +
+             '</label>';
+    }).join('');
+  }
+
+  function buildMaintainTags() {
+    document.getElementById('maintain-tag-list').innerHTML = APEX_ENUMS.TAGS.map(function (t) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #EBEEF5;">' +
+               '<span>' + ElTableMock.esc(t) + '</span>' +
+               '<button type="button" class="el-button el-button--text el-button--mini"><span>Remove</span></button>' +
+             '</div>';
+    }).join('');
+  }
+
+  function buildOperatorSelect() {
+    var host = document.getElementById('batch-operator');
+    host.innerHTML =
+      '<div class="el-input el-input--small el-input--suffix">' +
+        '<input type="text" readonly="readonly" placeholder="Please select" class="el-input__inner">' +
+        '<span class="el-input__suffix"><span class="el-input__suffix-inner">' +
+          '<i class="el-select__caret el-input__icon el-icon-arrow-up"></i>' +
+        '</span></span>' +
+      '</div>' +
+      '<div class="el-select-dropdown el-popper" style="display:none;">' +
+        '<div class="el-scrollbar"><div class="el-scrollbar__wrap">' +
+          '<ul class="el-scrollbar__view el-select-dropdown__list">' +
+            APEX_ENUMS.OPERATORS.map(function (o) {
+              return '<li class="el-select-dropdown__item"><span>' + ElTableMock.esc(o) + '</span></li>';
+            }).join('') +
+          '</ul>' +
+        '</div></div>' +
+      '</div>';
+  }
+
+  /* -------------------------------------------------------------- actions */
+
+  var ACTIONS = {
+    'clear-all-search': function () {
+      document.querySelectorAll('.el-table .el-input__inner').forEach(function (i) { i.value = ''; });
+      toast('All column filters cleared');
+    },
+    'confirm': function () {
+      if (!selected.length) return toast('Select at least one row first', 'error');
+      selected.forEach(function (i) { rows[i].status = 'Partial'; });
+      renderMain();
+      toast(selected.length + ' shipment(s) confirmed');
+      selected = [];
+    },
+    'create-job-to-sc': function () {
+      if (!selected.length) return toast('Select at least one row first', 'error');
+      selected.forEach(function (i) {
+        rows[i].scStatus = 'Existing';
+        if (!rows[i].scJob) rows[i].scJob = 'SC' + String(rows[i].mno).replace('-', '');
+      });
+      renderMain();
+      toast('SC job created for ' + selected.length + ' shipment(s)');
+      selected = [];
+    },
+    'delete-sc-job': function () {
+      if (!selected.length) return toast('Select at least one row first', 'error');
+      selected.forEach(function (i) { rows[i].scStatus = 'Not Existing'; rows[i].scJob = ''; });
+      renderMain();
+      toast('SC job deleted for ' + selected.length + ' shipment(s)');
+      selected = [];
+    },
+    'abi-query': function () {
+      if (!selected.length) return toast('Select at least one row first', 'error');
+      selected.forEach(function (i) { rows[i].abiStatus = 'In Processing'; });
+      renderMain();
+      toast('ABI query submitted for ' + selected.length + ' shipment(s)');
+    },
+    'new-import-job': function () { openDialog('dlg-new-import-job'); },
+    'new-shipment':   function () { openDialog('dlg-new-import-job'); },
+    'account-mapping': function () { openDialog('dlg-account-mapping'); },
+    'get-sc-job':     function () { openDialog('dlg-get-sc-job'); },
+    'batch-update':   function () {
+      document.getElementById('batch-count').textContent = selected.length;
+      openDialog('dlg-batch-update');
+    },
+    'batch-update-apply': function () {
+      var op  = document.querySelector('#batch-operator .el-input__inner').value;
+      var rem = document.getElementById('batch-remarks').value;
+      selected.forEach(function (i) {
+        if (op)  rows[i].operator = op;
+        if (rem) rows[i].opRem = rem;
+      });
+      renderMain();
+      document.getElementById('dlg-batch-update').style.display = 'none';
+      toast('Updated ' + selected.length + ' row(s)');
+    },
+    'update-tags':    function () { buildTagChecklist(); openDialog('dlg-update-tags'); },
+    'maintain-tags':  function () { buildMaintainTags(); openDialog('dlg-maintain-tags'); },
+    'apply-tags': function () {
+      var picked = Array.prototype.slice
+        .call(document.querySelectorAll('#tag-checklist .el-checkbox__original:checked'))
+        .map(function (c) { return c.value; });
+      selected.forEach(function (i) { rows[i].tags = picked.join(','); });
+      renderMain();
+      document.getElementById('dlg-update-tags').style.display = 'none';
+      toast('Tags applied to ' + selected.length + ' row(s)');
+    },
+    'add-tag': function () {
+      var v = document.getElementById('new-tag').value.trim();
+      if (!v) return;
+      APEX_ENUMS.TAGS.push(v);
+      buildMaintainTags();
+      document.getElementById('new-tag').value = '';
+      toast('Tag added');
+    },
+    'export-excel': function () { toast('Export queued'); },
+    'abi-search':   function () { renderAbi(); toast('Search applied'); },
+    'abi-reset':    function () {
+      document.getElementById('abi-mawb').value = '';
+      document.getElementById('abi-firm').value = '';
+      renderAbi();
+    }
+  };
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var fn = ACTIONS[btn.getAttribute('data-action')];
+    if (fn) fn();
+  });
+
+  /* Tell the shell which frame is live — mirrors how the real tab strip and
+     the iframe stay in sync. */
+  function announce() {
+    try {
+      parent.postMessage({ source: 'apex-frame', page: 'importConfirm', rows: rows.length }, '*');
+    } catch (err) { /* cross-origin in production; harmless */ }
+  }
+
+  /* Pagination controls. The size picker lives outside the table, so it needs
+     binding separately from the in-header column filters. */
+  ElTableMock.bindSelects(document.querySelector('#pane-1 .el-pagination__sizes'),
+    function (value) {
+      var n = parseInt(value, 10);
+      if (!n) return;
+      pageSize = n;
+      page = 1;
+      selected = [];
+      renderMain();
+    });
+
+  document.querySelector('#pane-1 .btn-prev').addEventListener('click', function () {
+    goToPage(page - 1);
+  });
+  document.querySelector('#pane-1 .btn-next').addEventListener('click', function () {
+    goToPage(page + 1);
+  });
+  document.querySelector('#pane-1 .el-pager').addEventListener('click', function (e) {
+    var li = e.target.closest('li.number');
+    if (li) goToPage(parseInt(li.textContent, 10));
+  });
+  document.querySelector('#pane-1 .el-pagination__editor .el-input__inner')
+    .addEventListener('change', function () { goToPage(parseInt(this.value, 10) || 1); });
+
+  buildOperatorSelect();
+  renderMain();
+  announce();
+
+  /* Exposed for the mock adapter in xcontrol_bot.py. Production has no such
+     global — the bot's production path must scrape the DOM instead. */
+  window.__APEX_MOCK__ = {
+    page: 'importConfirm',
+    rowCount: function () { return rows.length; },
+    setPageSize: function (n) { return Math.min(n, rows.length); }
+  };
+})();
+</script>
+</body>
+</html>

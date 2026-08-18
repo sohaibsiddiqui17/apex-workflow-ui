@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module</title>
+<!-- Every menu entry in the real shell opens its own iframe. The three that
+     matter for the bot are modelled in full (home, importConfirm,
+     updateAtdAta); the remaining 58 load this stub so that tab-opening,
+     frame naming and frame depth still behave exactly as they do in
+     production. -->
+<link rel="stylesheet" href="../assets/element-mock.css">
+</head>
+<body>
+<div id="app" class="app-container">
+  <div class="el-alert el-alert--info">
+    <span class="el-alert__content">
+      <strong id="mod-name">Module</strong> — not modelled in the mock.
+      This frame exists so tab and iframe behaviour matches production.
+    </span>
+  </div>
+  <p style="font-size:13px;color:#909399;">
+    Menu index <code id="mod-index">?</code> ·
+    frame name <code id="mod-frame">?</code>
+  </p>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var name = q.get('name') || 'Module';
+  var idx  = q.get('index') || '?';
+  document.getElementById('mod-name').textContent = name;
+  document.getElementById('mod-index').textContent = idx;
+  document.getElementById('mod-frame').textContent = 'iframe' + idx;
+  document.title = name;
+  window.__APEX_MOCK__ = { page: 'placeholder', name: name, index: idx };
+})();
+</script>
+</body>
+</html>

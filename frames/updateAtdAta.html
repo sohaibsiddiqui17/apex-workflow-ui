@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update ATD&amp;ATA</title>
+<!-- Mirrors https://xcimport.apexworkflow.com/updateAtdAta , which the shell
+     loads into iframe[name="iframe2"].
+
+     NOTE: the production capture in New DOM Structure contains only this
+     page's <iframe> tag, never its body. The Element UI structure here is
+     modelled on the Import Confirm grid, which IS captured, and on the
+     earlier flat mock's panel-2. Treat the column set and the dialog fields
+     as unverified until the real page is saved. -->
+<link rel="stylesheet" href="../assets/element-mock.css">
+</head>
+<body>
+
+<div id="app" data-v-8769da1a="">
+  <div class="app-container" data-v-8769da1a="">
+
+    <div class="apex-filterbar" data-v-8769da1a="">
+      <label>Customer:</label>
+      <div class="el-select el-select--small" id="flt-customer"></div>
+      <label>POD:</label>
+      <div class="el-select el-select--small" id="flt-pod"></div>
+      <label>Status:</label>
+      <div class="el-select el-select--small" id="flt-status"></div>
+      <button type="button" class="el-button el-button--warning el-button--small" data-action="clear-all-search">
+        <span>Clear All Search</span>
+      </button>
+    </div>
+
+    <div class="apex-toolbar" data-v-8769da1a="">
+      <button type="button" class="el-button el-button--primary el-button--small" data-action="update-atd">
+        <span>Update ATD</span>
+      </button>
+      <button type="button" class="el-button el-button--primary el-button--small" data-action="update-ata">
+        <span>Update ATA</span>
+      </button>
+      <button type="button" class="el-button el-button--warning el-button--small" data-action="exception-download">
+        <span>Exception Download</span>
+      </button>
+      <button type="button" class="el-button el-button--default el-button--small" data-action="transit">
+        <span>Transit ATA/ATD</span>
+      </button>
+      <button type="button" class="el-button el-button--success el-button--small" data-action="batch-atd">
+        <span>Batch Update ATD</span>
+      </button>
+      <button type="button" class="el-button el-button--success el-button--small" data-action="batch-ata">
+        <span>Batch Update ATA</span>
+      </button>
+    </div>
+
+    <div class="el-alert el-alert--info" id="atd-selection-note" style="display:none;">
+      <span class="el-alert__content"><span id="atd-selection-count">0</span> row(s) selected</span>
+    </div>
+
+    <div id="atd-table" data-v-8769da1a=""></div>
+
+    <div data-v-8769da1a="">
+      <div class="el-pagination" data-v-8769da1a="">
+        <span class="el-pagination__total" id="atd-total">Total 0</span>
+        <span class="el-pagination__sizes">
+          <div class="el-select el-select--mini">
+            <div class="el-input el-input--mini el-input--suffix">
+              <input type="text" readonly="readonly" class="el-input__inner" value="50/page">
+              <span class="el-input__suffix"><span class="el-input__suffix-inner">
+                <i class="el-select__caret el-input__icon el-icon-arrow-up"></i>
+              </span></span>
+            </div>
+            <div class="el-select-dropdown el-popper" style="display:none;min-width:110px;">
+              <div class="el-scrollbar"><div class="el-scrollbar__wrap">
+                <ul class="el-scrollbar__view el-select-dropdown__list">
+                  <li class="el-select-dropdown__item selected"><span>50/page</span></li>
+                  <li class="el-select-dropdown__item"><span>100/page</span></li>
+                  <li class="el-select-dropdown__item"><span>200/page</span></li>
+                  <li class="el-select-dropdown__item"><span>300/page</span></li>
+                  <li class="el-select-dropdown__item"><span>500/page</span></li>
+                </ul>
+              </div></div>
+            </div>
+          </div>
+        </span>
+        <button type="button" class="btn-prev" disabled>&lsaquo;</button>
+        <ul class="el-pager"><li class="number active">1</li></ul>
+        <button type="button" class="btn-next">&rsaquo;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SINGLE UPDATE DIALOG ============ -->
+  <div class="el-dialog__wrapper" id="dlg-atd" style="display:none;">
+    <div role="dialog" aria-modal="true" class="el-dialog" style="width: 560px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title" id="dlg-atd-title">Update ATD</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <div class="el-form-item">
+          <label class="el-form-item__label">M#</label>
+          <div class="el-form-item__content"><span id="f-mawb"></span></div>
+        </div>
+        <div class="el-form-item">
+          <label class="el-form-item__label">POL</label>
+          <div class="el-form-item__content"><span id="f-pol"></span></div>
+        </div>
+        <div class="el-form-item">
+          <label class="el-form-item__label">POD</label>
+          <div class="el-form-item__content"><span id="f-pod"></span></div>
+        </div>
+        <div class="el-form-item">
+          <label class="el-form-item__label" id="f-sched-label">ETD</label>
+          <div class="el-form-item__content"><span id="f-sched"></span></div>
+        </div>
+        <div class="el-form-item">
+          <label class="el-form-item__label" id="f-captured-label">Captured ATD</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small" style="width:150px;display:inline-block;">
+              <input type="date" class="el-input__inner" id="f-cap-date">
+            </div>
+            <div class="el-input el-input--small" style="width:110px;display:inline-block;">
+              <input type="time" class="el-input__inner" id="f-cap-time">
+            </div>
+          </div>
+        </div>
+        <div class="el-form-item is-required">
+          <label class="el-form-item__label" id="f-value-label">ATD</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small" style="width:150px;display:inline-block;">
+              <input type="date" class="el-input__inner" id="f-date">
+            </div>
+            <div class="el-input el-input--small" style="width:110px;display:inline-block;">
+              <input type="time" class="el-input__inner" id="f-time">
+            </div>
+          </div>
+        </div>
+        <div class="el-alert el-alert--warning" id="f-suggest" style="display:none;">
+          <span class="el-alert__content">
+            Suggest: <strong id="f-suggest-val"></strong>
+            <em id="f-suggest-rule" style="margin-left:8px;font-style:normal;opacity:.8;"></em>
+          </span>
+          <button type="button" class="el-button el-button--text el-button--mini" data-action="use-suggest">
+            <span>Use this value</span>
+          </button>
+        </div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium" data-action="save-single"><span>OK</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BATCH DIALOG ============ -->
+  <div class="el-dialog__wrapper" id="dlg-batch" style="display:none;">
+    <div role="dialog" aria-modal="true" class="el-dialog" style="width: 520px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title" id="dlg-batch-title">Batch Update ATD</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+        <p id="batch-info">0 row(s) selected.</p>
+        <div class="el-form-item is-required">
+          <label class="el-form-item__label" id="b-value-label">ATD</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small" style="width:150px;display:inline-block;">
+              <input type="date" class="el-input__inner" id="b-date">
+            </div>
+            <div class="el-input el-input--small" style="width:110px;display:inline-block;">
+              <input type="time" class="el-input__inner" id="b-time">
+            </div>
+          </div>
+        </div>
+        <div class="el-alert el-alert--warning" id="b-suggest" style="display:none;">
+          <span class="el-alert__content">
+            Suggest: <strong id="b-suggest-val"></strong>
+            <em id="b-suggest-rule" style="margin-left:8px;font-style:normal;opacity:.8;"></em>
+          </span>
+          <button type="button" class="el-button el-button--text el-button--mini" data-action="use-batch-suggest">
+            <span>Apply to All</span>
+          </button>
+        </div>
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium" data-action="save-batch"><span>OK</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-host"></div>
+</div>
+
+<script src="../assets/apex-enums.js"></script>
+<script src="../assets/apex-data.js"></script>
+<script src="../assets/el-table.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var SCOPE    = 'data-v-8769da1a';
+  var ALL      = APEX_DATA.ATD_ATA_DATA.slice();
+  var columns  = APEX_DATA.ATD_COLUMNS;
+  var view     = ALL.slice();
+  var selected = [];
+  var mode     = 'atd';       // 'atd' | 'ata'
+  var editRow  = null;
+
+  /* --------------------------------------------------- time-rule calculator */
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function fmt(dt) {
+    return dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) +
+           ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes()) + ':00';
+  }
+
+  function calcRule(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return null;
+    var actual = new Date(dateStr + 'T' + timeStr);
+    if (isNaN(actual.getTime())) return null;
+    var diffHrs = (Date.now() - actual.getTime()) / 3600000;
+    if (diffHrs <= 3 && diffHrs >= -24) {
+      return { value: fmt(actual), rule: '3-Hour Rule (use actual time directly)' };
+    }
+    if (diffHrs > 3) {
+      return { value: fmt(new Date(Date.now() - 2.5 * 3600000)), rule: '2.5-Hour Rollback (now - 2.5h)' };
+    }
+    return { value: fmt(actual), rule: 'Scheduled (actual not yet reached)' };
+  }
+
+  /* ----------------------------------------------------------------- table */
+
+  function render() {
+    ElTableMock.render({
+      mount: document.getElementById('atd-table'),
+      columns: columns,
+      rows: view,
+      tableIndex: 1,
+      scope: SCOPE,
+      fixedCount: 1,
+      bodyHeight: 420,
+      onSelect: function (idxs) {
+        selected = idxs;
+        document.getElementById('atd-selection-count').textContent = idxs.length;
+        document.getElementById('atd-selection-note').style.display = idxs.length ? '' : 'none';
+      }
+    });
+    document.getElementById('atd-total').textContent = 'Total ' + view.length;
+  }
+
+  /* --------------------------------------------------------------- filters */
+
+  function buildSelect(hostId, options, onPick) {
+    var host = document.getElementById(hostId);
+    host.innerHTML =
+      '<div class="el-input el-input--small el-input--suffix">' +
+        '<input type="text" readonly="readonly" placeholder="Please select" class="el-input__inner">' +
+        '<span class="el-input__suffix"><span class="el-input__suffix-inner">' +
+          '<i class="el-select__caret el-input__icon el-icon-arrow-up"></i>' +
+        '</span></span>' +
+      '</div>' +
+      '<div class="el-select-dropdown el-popper" style="display:none;">' +
+        '<div class="el-scrollbar"><div class="el-scrollbar__wrap">' +
+          '<ul class="el-scrollbar__view el-select-dropdown__list">' +
+            options.map(function (o) {
+              return '<li class="el-select-dropdown__item"><span>' + ElTableMock.esc(o) + '</span></li>';
+            }).join('') +
+          '</ul>' +
+        '</div></div>' +
+      '</div>';
+
+    var input = host.querySelector('.el-input__inner');
+    var drop  = host.querySelector('.el-select-dropdown');
+    input.addEventListener('click', function (e) {
+      e.stopPropagation();
+      drop.style.display = drop.style.display === 'none' ? '' : 'none';
+    });
+    drop.addEventListener('click', function (e) {
+      var li = e.target.closest('.el-select-dropdown__item');
+      if (!li) return;
+      input.value = li.textContent.trim();
+      drop.style.display = 'none';
+      onPick(input.value);
+    });
+  }
+
+  function uniq(key) {
+    var seen = {};
+    ALL.forEach(function (r) { if (r[key]) seen[r[key]] = true; });
+    return ['All'].concat(Object.keys(seen).sort());
+  }
+
+  var filters = { customer: 'All', pod: 'All', status: 'All' };
+
+  function applyFilters() {
+    view = ALL.filter(function (r) {
+      return (filters.customer === 'All' || r.customer === filters.customer) &&
+             (filters.pod      === 'All' || r.pod      === filters.pod) &&
+             (filters.status   === 'All' || r.status   === filters.status);
+    });
+    selected = [];
+    render();
+  }
+
+  /* --------------------------------------------------------------- dialogs */
+
+  function toast(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'el-message el-message--' + (type || 'success');
+    el.innerHTML = '<p class="el-message__content">' + ElTableMock.esc(msg) + '</p>';
+    document.getElementById('toast-host').appendChild(el);
+    setTimeout(function () { el.remove(); }, 2600);
+  }
+
+  document.querySelectorAll('[data-close]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      b.closest('.el-dialog__wrapper').style.display = 'none';
+    });
+  });
+
+  function openSingle(kind) {
+    if (selected.length !== 1) {
+      return toast('Select exactly one row to update ' + kind.toUpperCase(), 'error');
+    }
+    mode = kind;
+    editRow = view[selected[0]];
+
+    var isAtd = kind === 'atd';
+    document.getElementById('dlg-atd-title').textContent   = isAtd ? 'Update ATD' : 'Update ATA';
+    document.getElementById('f-value-label').textContent   = isAtd ? 'ATD' : 'ATA';
+    document.getElementById('f-captured-label').textContent = isAtd ? 'Captured ATD' : 'Captured ATA';
+    document.getElementById('f-sched-label').textContent   = isAtd ? 'ETD' : 'ETA';
+    document.getElementById('f-mawb').textContent  = editRow.mawb;
+    document.getElementById('f-pol').textContent   = editRow.pol;
+    document.getElementById('f-pod').textContent   = editRow.pod;
+    document.getElementById('f-sched').textContent = isAtd ? editRow.etdOrig : editRow.eta;
+
+    var existing = isAtd ? editRow.atd : editRow.ata;
+    var seed = existing || (isAtd ? editRow.etdOrig : editRow.eta) || '';
+    var parts = seed.split(' ');
+    document.getElementById('f-date').value     = parts[0] || '';
+    document.getElementById('f-time').value     = (parts[1] || '').slice(0, 5);
+    document.getElementById('f-cap-date').value = parts[0] || '';
+    document.getElementById('f-cap-time').value = (parts[1] || '').slice(0, 5);
+
+    recalcSingle();
+    document.getElementById('dlg-atd').style.display = '';
+  }
+
+  function recalcSingle() {
+    var r = calcRule(document.getElementById('f-cap-date').value,
+                     document.getElementById('f-cap-time').value);
+    var box = document.getElementById('f-suggest');
+    if (!r) { box.style.display = 'none'; return; }
+    document.getElementById('f-suggest-val').textContent  = r.value;
+    document.getElementById('f-suggest-rule').textContent = r.rule;
+    box.style.display = '';
+    box.dataset.value = r.value;
+  }
+
+  ['f-cap-date', 'f-cap-time'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', recalcSingle);
+  });
+
+  function openBatch(kind) {
+    if (!selected.length) return toast('Select at least one row first', 'error');
+    mode = kind;
+    var isAtd = kind === 'atd';
+    document.getElementById('dlg-batch-title').textContent = isAtd ? 'Batch Update ATD' : 'Batch Update ATA';
+    document.getElementById('b-value-label').textContent   = isAtd ? 'ATD' : 'ATA';
+    document.getElementById('batch-info').textContent      = selected.length + ' row(s) selected.';
+    var now = new Date();
+    document.getElementById('b-date').value = now.toISOString().slice(0, 10);
+    document.getElementById('b-time').value = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    recalcBatch();
+    document.getElementById('dlg-batch').style.display = '';
+  }
+
+  function recalcBatch() {
+    var r = calcRule(document.getElementById('b-date').value,
+                     document.getElementById('b-time').value);
+    var box = document.getElementById('b-suggest');
+    if (!r) { box.style.display = 'none'; return; }
+    document.getElementById('b-suggest-val').textContent  = r.value;
+    document.getElementById('b-suggest-rule').textContent = r.rule;
+    box.style.display = '';
+    box.dataset.value = r.value;
+  }
+
+  ['b-date', 'b-time'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', recalcBatch);
+  });
+
+  function statusAfter(row) {
+    if (row.ata) return 'Completed';
+    if (row.atd) return 'Pending Arrival';
+    return 'Pending Depart';
+  }
+
+  /* --------------------------------------------------------------- actions */
+
+  var ACTIONS = {
+    'update-atd': function () { openSingle('atd'); },
+    'update-ata': function () { openSingle('ata'); },
+    'batch-atd':  function () { openBatch('atd'); },
+    'batch-ata':  function () { openBatch('ata'); },
+    'exception-download': function () { toast('Exception report queued'); },
+    'transit': function () { toast('Transit ATA/ATD recalculated'); },
+    'clear-all-search': function () {
+      filters = { customer: 'All', pod: 'All', status: 'All' };
+      ['flt-customer', 'flt-pod', 'flt-status'].forEach(function (id) {
+        document.querySelector('#' + id + ' .el-input__inner').value = '';
+      });
+      applyFilters();
+      toast('Filters cleared');
+    },
+    'use-suggest': function () {
+      var v = document.getElementById('f-suggest').dataset.value || '';
+      var p = v.split(' ');
+      document.getElementById('f-date').value = p[0] || '';
+      document.getElementById('f-time').value = (p[1] || '').slice(0, 5);
+    },
+    'use-batch-suggest': function () {
+      var v = document.getElementById('b-suggest').dataset.value || '';
+      var p = v.split(' ');
+      document.getElementById('b-date').value = p[0] || '';
+      document.getElementById('b-time').value = (p[1] || '').slice(0, 5);
+    },
+    'save-single': function () {
+      var d = document.getElementById('f-date').value;
+      var t = document.getElementById('f-time').value;
+      if (!d || !t) return toast('Enter a date and time', 'error');
+      var val = d + ' ' + t + ':00';
+      editRow[mode] = val;
+      editRow.status = statusAfter(editRow);
+      document.getElementById('dlg-atd').style.display = 'none';
+      render();
+      toast(mode.toUpperCase() + ' set to ' + val + ' for ' + editRow.mawb);
+    },
+    'save-batch': function () {
+      var d = document.getElementById('b-date').value;
+      var t = document.getElementById('b-time').value;
+      if (!d || !t) return toast('Enter a date and time', 'error');
+      var val = d + ' ' + t + ':00';
+      selected.forEach(function (i) {
+        view[i][mode] = val;
+        view[i].status = statusAfter(view[i]);
+      });
+      document.getElementById('dlg-batch').style.display = 'none';
+      var n = selected.length;
+      selected = [];
+      render();
+      toast(mode.toUpperCase() + ' set on ' + n + ' shipment(s)');
+    }
+  };
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var fn = ACTIONS[btn.getAttribute('data-action')];
+    if (fn) fn();
+  });
+
+  /* ------------------------------------------------------------------ init */
+
+  buildSelect('flt-customer', uniq('customer'), function (v) { filters.customer = v; applyFilters(); });
+  buildSelect('flt-pod',      uniq('pod'),      function (v) { filters.pod = v;      applyFilters(); });
+  buildSelect('flt-status',   ['All'].concat(APEX_ENUMS.ATD_STATUS),
+                                                function (v) { filters.status = v;   applyFilters(); });
+  render();
+
+  try {
+    parent.postMessage({ source: 'apex-frame', page: 'updateAtdAta', rows: view.length }, '*');
+  } catch (err) { /* cross-origin in production */ }
+
+  window.__APEX_MOCK__ = { page: 'updateAtdAta', rowCount: function () { return view.length; } };
+})();
+</script>
+</body>
+</html>

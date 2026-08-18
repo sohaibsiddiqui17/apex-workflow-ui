@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SSO</title>
+</head>
+<body>
+<!-- Stand-in for the ~40 hidden per-domain SSO frames the production login
+     page mounts (see New DOM Structure/Login_Page.txt, the #bodyframe blocks
+     that push onto authUrlList). Each real one takes the session token and
+     writes it into its own domain's storage. -->
+<script>
+(function () {
+  'use strict';
+  var host = new URLSearchParams(location.search).get('host') || 'unknown';
+
+  window.addEventListener('message', function (e) {
+    var msg = e.data;
+    if (!msg || msg.source !== 'apex-sso' || !msg.token) return;
+    try {
+      localStorage.setItem('apex_sso_token__' + host, msg.token);
+    } catch (err) { /* storage may be partitioned */ }
+    parent.postMessage({ source: 'apex-sso-ack', host: host }, '*');
+  });
+
+  parent.postMessage({ source: 'apex-sso-ready', host: host }, '*');
+})();
+</script>
+</body>
+</html>

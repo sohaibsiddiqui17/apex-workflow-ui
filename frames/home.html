@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomePage</title>
+<!-- Mirrors https://xcimport.apexworkflow.com/home?systemcode=xc , which the
+     shell loads into iframe[name="iframe0"]. The real shell keeps this frame
+     mounted with style="display:none" once another tab is opened. -->
+<link rel="stylesheet" href="../assets/element-mock.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  .home-title { font-size: 18px; font-weight: 600; color: #303133; margin: 4px 0 14px; }
+  .stat-grid  { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .stat-card  {
+    background: #fff; border: 1px solid #EBEEF5; border-radius: 4px;
+    padding: 16px; display: flex; align-items: center; gap: 14px;
+  }
+  .stat-icon  {
+    width: 42px; height: 42px; border-radius: 6px; flex: 0 0 42px;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px;
+  }
+  .stat-icon.blue   { background: #409EFF; }
+  .stat-icon.orange { background: #E6A23C; }
+  .stat-icon.green  { background: #67C23A; }
+  .stat-icon.purple { background: #8b5cf6; }
+  .stat-val   { font-size: 22px; font-weight: 700; color: #303133; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: 12px; color: #909399; margin-top: 3px; }
+  .qa-title   { font-size: 14px; font-weight: 600; color: #303133; margin: 22px 0 10px; }
+  .qa-grid    { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .qa-card    {
+    background: #fff; border: 1px solid #EBEEF5; border-radius: 4px; padding: 18px 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+    cursor: pointer; transition: .15s; font-size: 13px; color: #606266;
+  }
+  .qa-card:hover { border-color: #409EFF; color: #409EFF; box-shadow: 0 2px 10px rgba(64,158,255,.14); }
+  .qa-card i  { font-size: 20px; }
+  .upload-bar { display: flex; gap: 10px; margin: 16px 0 4px; flex-wrap: wrap; align-items: center; }
+  .api-note   { font-size: 11px; color: #909399; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div id="app" data-v-e2a1b198="">
+  <div class="app-container" data-v-e2a1b198="">
+
+    <div class="home-title">Dashboard</div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue"><i class="fa fa-clock"></i></div>
+        <div>
+          <div class="stat-val" id="stat-pending">0</div>
+          <div class="stat-label">Import Confirm Total</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon orange"><i class="fa fa-robot"></i></div>
+        <div>
+          <div class="stat-val" id="stat-bot-pending">0</div>
+          <div class="stat-label">Bot Pending</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
+        <div>
+          <div class="stat-val" id="stat-bot-arrived">0</div>
+          <div class="stat-label">Bot Arrived</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon purple"><i class="fa fa-ship"></i></div>
+        <div>
+          <div class="stat-val" id="stat-pickup">0</div>
+          <div class="stat-label">Pickup Reports</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="upload-bar">
+      <label class="el-button el-button--success el-button--small" style="cursor:pointer;">
+        <i class="fa fa-upload"></i> Upload Import Confirm
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" id="up-ic">
+      </label>
+      <label class="el-button el-button--primary el-button--small" style="cursor:pointer;">
+        <i class="fa fa-upload"></i> Upload Pickup Report
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" id="up-pr">
+      </label>
+      <button type="button" class="el-button el-button--default el-button--small" id="btn-refresh">
+        <i class="fa fa-sync"></i> Refresh Stats
+      </button>
+    </div>
+
+    <div id="bot-strip" style="display:none;gap:6px;flex-wrap:wrap;margin-top:10px;"></div>
+
+    <div class="qa-title">Quick Access</div>
+    <div class="qa-grid">
+      <div class="qa-card" data-open="16" data-name="Import Confirm">
+        <i class="fa fa-check-double"></i><span>Import Confirm</span>
+      </div>
+      <div class="qa-card" data-open="2" data-name="Update ATD&amp;ATA">
+        <i class="fa fa-gauge-high"></i><span>Update ATD/ATA</span>
+      </div>
+      <div class="qa-card" data-open="14" data-name="ABI Query">
+        <i class="fa fa-magnifying-glass"></i><span>ABI Query</span>
+      </div>
+      <div class="qa-card" data-open="18" data-name="Shipment List">
+        <i class="fa fa-cloud"></i><span>Shipment List</span>
+      </div>
+    </div>
+
+    <p class="api-note">Backend: <code id="api-base"></code></p>
+  </div>
+
+  <div id="toast-host"></div>
+</div>
+
+<script src="../assets/api.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  document.getElementById('api-base').textContent = APEX_API.base;
+
+  function toast(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'el-message el-message--' + (type || 'success');
+    el.innerHTML = '<p class="el-message__content"></p>';
+    el.querySelector('p').textContent = msg;
+    document.getElementById('toast-host').appendChild(el);
+    setTimeout(function () { el.remove(); }, 3200);
+  }
+
+  function set(id, v) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = (v === null || v === undefined) ? '0' : v;
+  }
+
+  async function loadStats() {
+    try {
+      var data = await APEX_API.getJSON('/api/stats');
+      var ic = data.import_confirm || {};
+      var pr = data.pickup_report || {};
+      var bot = ic.by_bot_status || {};
+
+      set('stat-pending', ic.total);
+      set('stat-bot-pending', bot.pending || 0);
+      set('stat-bot-arrived', bot.arrived || 0);
+      set('stat-pickup', pr.total);
+
+      var colors = { pending: '#E6A23C', arrived: '#67C23A', no_eta: '#8b5cf6', error: '#F56C6C' };
+      var strip = document.getElementById('bot-strip');
+      var keys = Object.keys(bot);
+      strip.innerHTML = keys.map(function (k) {
+        return '<span class="el-tag" style="background:' + (colors[k] || '#909399') +
+               ';color:#fff;border-color:transparent;">' + k + ': ' + bot[k] + '</span>';
+      }).join('');
+      strip.style.display = keys.length ? 'flex' : 'none';
+    } catch (e) {
+      // Backend offline — leave the zeros in place rather than showing an error
+      // on every load, which is what the real dashboard does too.
+    }
+  }
+
+  async function upload(input, path, label) {
+    var file = input.files[0];
+    if (!file) return;
+    input.value = '';
+    var wrap = input.closest('label');
+    if (wrap) { wrap.style.opacity = '.6'; wrap.style.pointerEvents = 'none'; }
+    try {
+      var fd = new FormData();
+      fd.append('file', file);
+      var data = await APEX_API.postForm(path, fd);
+      toast(label + ' uploaded — upserted ' + data.upserted + ', skipped ' + data.skipped);
+      loadStats();
+      // Tell any open Import Confirm frame to refresh through the shell.
+      parent.postMessage({ source: 'apex-frame', action: 'data-changed' }, '*');
+    } catch (err) {
+      toast('Upload failed: ' + err.message + ' (is the backend running?)', 'error');
+    } finally {
+      if (wrap) { wrap.style.opacity = ''; wrap.style.pointerEvents = ''; }
+    }
+  }
+
+  document.getElementById('up-ic').addEventListener('change', function () {
+    upload(this, '/api/upload/import-confirm', 'Import Confirm');
+  });
+  document.getElementById('up-pr').addEventListener('change', function () {
+    upload(this, '/api/upload/pickup-report', 'Pickup Report');
+  });
+  document.getElementById('btn-refresh').addEventListener('click', function () {
+    loadStats();
+    toast('Stats refreshed');
+  });
+
+  /* Quick Access opens a shell tab. In production the home iframe does the
+     same thing by calling into the parent's tab machinery. */
+  document.querySelectorAll('.qa-card').forEach(function (card) {
+    card.addEventListener('click', function () {
+      parent.postMessage({
+        source: 'apex-frame',
+        action: 'open-menu',
+        index: Number(card.getAttribute('data-open')),
+        name: card.getAttribute('data-name')
+      }, '*');
+    });
+  });
+
+  loadStats();
+  window.__APEX_MOCK__ = { page: 'home' };
+})();
+</script>
+</body>
+</html>

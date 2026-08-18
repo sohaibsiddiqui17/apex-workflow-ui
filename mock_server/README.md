@@ -182,9 +182,39 @@ Point your bot at `http://localhost:8090` (or your server IP on port 8090).
 
 ## Frontend integration
 
-The frontend (`index.html`) connects to `http://localhost:8090` by default.  
-Change `API_BASE` at the top of the `<script>` section in `index.html` to point at a remote server.
+The frontend is **not** a single page. `index.html` is only the HPlus shell; every
+module lives in its own iframe under `frames/`. See the root `README.md` for the
+four-layer map and the scraping hazards it reproduces.
 
-The server also serves the frontend directly:
-- Login page: `http://localhost:8090/login.html`
-- Main app: `http://localhost:8090/index.html`
+The server serves all of it:
+
+- Login page: `http://localhost:8090/login.html`  (`/` redirects here)
+- Shell:      `http://localhost:8090/index.html`
+- Frames:     `http://localhost:8090/frames/importConfirm.html` etc.
+- Assets:     `http://localhost:8090/assets/el-table.js` etc.
+
+The backend base URL lives in `assets/api.js`. Override it per session with a
+query string instead of editing the file:
+
+```
+http://localhost:8090/login.html?api=http://192.168.1.50:8090
+```
+
+When the page is served from port 8090 it defaults to its own origin.
+
+---
+
+## Bot and tests
+
+```bash
+python xcontrol_bot.py                        # scrape the mock, POST to /bulk
+python xcontrol_bot.py --no-ingest --headed   # watch it, post nothing
+python xcontrol_bot.py --target production --no-ingest
+
+python smoke_test.py                          # 37 structural assertions
+```
+
+`xcontrol_bot.py` drives the mock and the real portal with the same code path:
+menu click -> `frame_locator('iframe[name="iframe16"]')` -> page size 500 ->
+extract by header text from `.el-table__body-wrapper` -> map to DB columns.
+`--target production` only swaps the base URL and login path.
