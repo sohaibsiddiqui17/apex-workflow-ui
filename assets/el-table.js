@@ -35,8 +35,11 @@
 
   /* ---------------------------------------------------------------- filters */
 
-  function filterWidget(col, scope) {
+  function filterWidget(col, scope, cur) {
     var dv = scope ? ' ' + scope + '=""' : '';
+    // `cur` re-seeds the widget after a re-render. render() rebuilds innerHTML
+    // wholesale, so without this every keystroke in a filter box would clear it.
+    var curText = (cur === null || cur === undefined || typeof cur === 'object') ? '' : String(cur);
 
     if (col.filter === 'select') {
       var items = (col.options || []).map(function (o) {
@@ -45,7 +48,7 @@
       return '' +
         '<div' + dv + ' class="el-select el-select--mini">' +
           '<div class="el-input el-input--mini el-input--suffix">' +
-            '<input type="text" readonly="readonly" autocomplete="off" placeholder="Please select" class="el-input__inner">' +
+            '<input type="text" readonly="readonly" autocomplete="off" placeholder="Please select" class="el-input__inner" value="' + esc(curText) + '">' +
             '<span class="el-input__suffix"><span class="el-input__suffix-inner">' +
               '<i class="el-select__caret el-input__icon el-icon-arrow-up"></i>' +
             '</span></span>' +
@@ -59,13 +62,14 @@
     }
 
     if (col.filter === 'daterange') {
+      var range = (cur && typeof cur === 'object') ? cur : {};
       return '' +
         '<div' + dv + ' class="hdr-range">' +
           '<div class="el-input el-input--mini">' +
-            '<input type="text" autocomplete="off" placeholder="Start date" class="el-input__inner">' +
+            '<input type="text" autocomplete="off" placeholder="Start date" class="el-input__inner" value="' + esc(range.start || '') + '">' +
           '</div>' +
           '<div class="el-input el-input--mini">' +
-            '<input type="text" autocomplete="off" placeholder="End date" class="el-input__inner">' +
+            '<input type="text" autocomplete="off" placeholder="End date" class="el-input__inner" value="' + esc(range.end || '') + '">' +
           '</div>' +
         '</div>';
     }
@@ -73,7 +77,7 @@
     if (col.filter === 'text') {
       return '' +
         '<div' + dv + ' class="el-input el-input--mini el-input--suffix">' +
-          '<input type="text" autocomplete="off" placeholder="filter column" class="el-input__inner">' +
+          '<input type="text" autocomplete="off" placeholder="filter column" class="el-input__inner" value="' + esc(curText) + '">' +
           '<span class="el-input__suffix"><span class="el-input__suffix-inner">' +
             '<i class="el-input__icon el-icon-search"></i>' +
           '</span></span>' +
@@ -85,7 +89,7 @@
 
   /* ---------------------------------------------------------------- header */
 
-  function headerCell(col, n, idx, scope, hidden) {
+  function headerCell(col, n, idx, scope, hidden, cur) {
     var dv = scope ? ' ' + scope + '=""' : '';
     var cls = ['el-table_' + idx + '_column_' + n, 'is-center'];
     if (col.type === 'selection') cls.push('el-table-column--selection');
@@ -103,7 +107,7 @@
     } else {
       inner = '<span' + dv + '>' + esc(col.label) + '</span>';
       if (col.filter === 'daterange') inner += '<span' + dv + '>-</span>';
-      inner += filterWidget(col, scope);
+      inner += filterWidget(col, scope, cur);
     }
 
     return '<th colspan="1" rowspan="1" class="' + cls.join(' ') + '">' +
@@ -176,8 +180,9 @@
     var cg     = colgroup(columns, idx);
 
     /* --- main header: selection column hidden, data columns visible ------- */
+    var filters = cfg.filters || {};
     var mainHead = columns.map(function (c, i) {
-      return headerCell(c, i + 1, idx, scope, i < fixedN);
+      return headerCell(c, i + 1, idx, scope, i < fixedN, c.key ? filters[c.key] : null);
     }).join('') + '<th class="el-table__cell gutter" style="width: 0px; display: none;"></th>';
 
     /* --- main body: same inversion ---------------------------------------- */
@@ -189,7 +194,7 @@
 
     /* --- fixed clone: selection column visible, data columns hidden ------- */
     var fixHead = columns.map(function (c, i) {
-      return headerCell(c, i + 1, idx, scope, i >= fixedN);
+      return headerCell(c, i + 1, idx, scope, i >= fixedN, c.key ? filters[c.key] : null);
     }).join('');
 
     var fixBody = rows.map(function (r, ri) {
@@ -242,10 +247,87 @@
 
     wireSelection(mount, cfg);
     wireDropdowns(mount);
+    wireScrollSync(mount);
+    // Re-baseline the change guard on every render. Without this, clearing a
+    // filter and then retyping the same value would be treated as "no change".
+    mount.__elFilterKey = filterKey(filters);
+    wireFilters(mount, cfg);
     return mount;
   }
 
   /* ------------------------------------------------------- interactivity */
+
+  /* The table is three independently overflowing boxes: the header wrapper
+     (overflow:hidden), the body wrapper (overflow:auto — the only scrollbar the
+     user ever touches) and the frozen-column clone (overflow:hidden). Element UI
+     drives the other two off the body wrapper's scroll event; nothing here did,
+     so the ~4350px of header scrolled past the viewport could never be reached
+     and the frozen checkboxes stopped lining up with the rows beside them.
+
+     Both wrappers keep overflow:hidden — production relies on that clipping, and
+     the row-clone trick depends on the clone staying unscrollable — so the
+     header is moved with scrollLeft (settable even on overflow:hidden) and the
+     clone by transforming the table inside it rather than by giving either one a
+     scrollbar of its own. */
+  function wireScrollSync(mount) {
+    var body = mount.querySelector('.el-table__body-wrapper');
+    if (!body) return;
+
+    var header     = mount.querySelector('.el-table__header-wrapper');
+    var fixed      = mount.querySelector('.el-table__fixed');
+    var fixedHead  = mount.querySelector('.el-table__fixed-header-wrapper');
+    var fixedBody  = mount.querySelector('.el-table__fixed-body-wrapper');
+    var fixedTable = fixedBody ? fixedBody.querySelector('table.el-table__body') : null;
+
+    /* The clone's body sits absolutely below its own header copy. How tall that
+       header is depends on the filter widgets inside it — 114px on Import
+       Confirm, 99px on Update ATD&ATA, never the 64px the markup assumes — so
+       measure it instead of guessing, or row 1 of the checkbox column starts
+       50px above row 1 of the data. Height comes from clientHeight, which
+       excludes the horizontal scrollbar the body wrapper carries and the clone
+       does not, so both clip after the same row. */
+    function place() {
+      if (!fixed || !fixedBody) return;
+      var headH = (fixedHead || header) ? (fixedHead || header).offsetHeight : 0;
+      if (!headH) return;   // inside a hidden tab pane; the observer retries
+      var top  = headH + 'px';
+      var inner = body.clientHeight + 'px';
+      var outer = (headH + body.offsetHeight) + 'px';
+      if (fixedBody.style.top    !== top)   fixedBody.style.top    = top;
+      if (fixedBody.style.height !== inner) fixedBody.style.height = inner;
+      if (fixed.style.height     !== outer) fixed.style.height     = outer;
+    }
+
+    function sync() {
+      if (header) header.scrollLeft = body.scrollLeft;
+      if (fixedTable) {
+        fixedTable.style.transform = body.scrollTop
+          ? 'translateY(' + (-body.scrollTop) + 'px)'
+          : '';
+      }
+      // Element UI's own shadow/edge state, kept honest rather than hardcoded.
+      var max = body.scrollWidth - body.clientWidth;
+      var cl  = body.classList;
+      cl.toggle('is-scrolling-none',   max <= 0);
+      cl.toggle('is-scrolling-left',   max > 0 && body.scrollLeft <= 0);
+      cl.toggle('is-scrolling-right',  max > 0 && body.scrollLeft >= max);
+      cl.toggle('is-scrolling-middle', max > 0 && body.scrollLeft > 0 && body.scrollLeft < max);
+    }
+
+    body.addEventListener('scroll', sync);
+
+    /* Panes 2 and 3 render while their tab is hidden, so the header measures 0
+       there. Re-place when the mount gains a size — which is also what a window
+       resize or a re-wrapping header cell needs. */
+    if (mount.__elResizeObs) mount.__elResizeObs.disconnect();
+    if (typeof ResizeObserver === 'function') {
+      mount.__elResizeObs = new ResizeObserver(place);
+      mount.__elResizeObs.observe(mount);
+    }
+
+    place();
+    sync();
+  }
 
   /* Row checkboxes exist in both copies. Clicking either must keep the two in
      sync, exactly as Element UI does, so a bot clicking the visible one in the
@@ -340,12 +422,123 @@
     });
   }
 
+  /* The column header filters used to be decorative — rendered, openable, and
+     wired to nothing. They filter for real now.
+
+     Column identity is derived POSITIONALLY against cfg.columns, matching the
+     order the header was generated in, rather than by stamping a data-* key
+     onto the markup. Production emits no such attribute, and the whole point of
+     this mock is that a selector proven here also works there. */
+  /* Key-order-independent identity for a filter set, so the "did anything
+     change?" guard cannot be fooled by two equal sets built in a different
+     order. */
+  function filterKey(filters) {
+    var keys = Object.keys(filters || {}).sort();
+    return JSON.stringify(keys.map(function (k) { return [k, filters[k]]; }));
+  }
+
+  function wireFilters(mount, cfg) {
+    if (typeof cfg.onFilter !== 'function') return;
+    var columns = cfg.columns || [];
+
+    function collect() {
+      var out = {};
+      var ths = mount.querySelectorAll('.el-table__header-wrapper thead tr th');
+      columns.forEach(function (col, i) {
+        var th = ths[i];
+        if (!th || !col.key || !col.filter) return;
+
+        if (col.filter === 'daterange') {
+          var ins = th.querySelectorAll('.hdr-range .el-input__inner');
+          var start = ins[0] ? ins[0].value.trim() : '';
+          var end   = ins[1] ? ins[1].value.trim() : '';
+          if (start || end) out[col.key] = { start: start, end: end };
+          return;
+        }
+
+        var input = th.querySelector('.el-input__inner');
+        var value = input ? input.value.trim() : '';
+        if (value && value !== 'All') out[col.key] = value;
+      });
+      return out;
+    }
+
+    /* Applying a filter re-renders the table, which destroys the very input
+       being typed into. Two things keep that from being felt:
+
+         - re-render only when the filter set actually changed, so the blur
+           that follows a fill() does not fire a second, pointless render that
+           would swallow whatever the user clicked next;
+         - put focus and caret back afterwards, addressing the input by its
+           column position since the old node is gone. */
+    function apply(thIndex, inputIndex, caret) {
+      var next = collect();
+      var key = filterKey(next);
+      if (key === mount.__elFilterKey) return;
+      mount.__elFilterKey = key;
+
+      cfg.onFilter(next);
+
+      if (thIndex === null || thIndex === undefined) return;
+      var th = mount.querySelectorAll('.el-table__header-wrapper thead tr th')[thIndex];
+      if (!th) return;
+      var input = th.querySelectorAll('.el-input__inner')[inputIndex || 0];
+      if (!input || input.readOnly) return;
+      input.focus();
+      try { input.setSelectionRange(caret, caret); } catch (err) { /* not a text input */ }
+    }
+
+    mount.querySelectorAll('.el-table__header-wrapper thead tr th').forEach(function (th, thIndex) {
+      th.querySelectorAll('.el-input__inner').forEach(function (input, inputIndex) {
+        function fire() { apply(thIndex, inputIndex, input.selectionStart); }
+
+        if (input.readOnly) {
+          // A select. bindSelects dispatches 'change' when an option is picked.
+          input.addEventListener('change', fire);
+          return;
+        }
+
+        /* Debounced, because Playwright's fill() and a human's keystrokes both
+           arrive as 'input' — 'change' alone would never fire for fill(), which
+           does not blur. */
+        var timer = null;
+        input.addEventListener('input', function () {
+          clearTimeout(timer);
+          timer = setTimeout(fire, 200);
+        });
+        input.addEventListener('change', function () { clearTimeout(timer); fire(); });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { clearTimeout(timer); fire(); }
+        });
+      });
+    });
+  }
+
   function wireDropdowns(mount) { bindSelects(mount); }
+
+  /* Shared predicate so importConfirm and updateAtdAta agree on what a header
+     filter means: substring & case-insensitive for text, exact for selects,
+     lexical bounds for date ranges (the timestamps are zero-padded ISO-ish
+     strings, so string comparison is date comparison). */
+  function matchesFilters(row, filters) {
+    return Object.keys(filters || {}).every(function (key) {
+      var want = filters[key];
+      var have = row[key] === null || row[key] === undefined ? '' : String(row[key]);
+
+      if (want && typeof want === 'object') {
+        if (want.start && have < want.start) return false;
+        if (want.end && have > want.end + '￿') return false;
+        return true;
+      }
+      return have.toLowerCase().indexOf(String(want).toLowerCase()) !== -1;
+    });
+  }
 
   root.ElTableMock = {
     render: render,
     selectedIndexes: selectedIndexes,
     bindSelects: bindSelects,
+    matchesFilters: matchesFilters,
     esc: esc
   };
 })(typeof window !== 'undefined' ? window : this);

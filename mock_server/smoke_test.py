@@ -17,6 +17,8 @@ import argparse
 import os
 import sys
 
+import requests
+
 from playwright.sync_api import sync_playwright
 
 for _s in (sys.stdout, sys.stderr):
@@ -57,6 +59,15 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--headed", action="store_true")
     args = ap.parse_args()
+
+    # Start from seeded fixtures: the write-back assertions below compare
+    # against known values, so a DB left dirty by an earlier run would fail them
+    # for the wrong reason.
+    try:
+        requests.post(f"{BASE}/api/reset", timeout=10).raise_for_status()
+    except requests.RequestException as exc:
+        print(f"WARNING: could not reset the backend ({exc}); "
+              f"write-back assertions may be comparing against stale data")
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=not args.headed)
@@ -206,6 +217,124 @@ def main() -> int:
               atd.locator("button[data-action]").count(), predicate=lambda n: n >= 6)
         check("Update ATD button present",
               atd.locator('button[data-action="update-atd"]').count(), 1)
+
+        # ------------------------------------------------- header filtering
+        # These used to render and do nothing. A bot following SOP #2
+        # ("search shipment using AWB") depends on them working.
+        section("Header column filters")
+        mcol = atd.locator(".el-table__header-wrapper thead th").nth(1)
+        check("column 1 is M#",
+              (mcol.locator(".cell > span").first.text_content() or "").strip(), "M#")
+        mcol.locator('input.el-input__inner[placeholder="filter column"]').fill("695-594")
+        page.wait_for_timeout(500)
+        check("M# filter narrows the grid",
+              (atd.locator("#atd-total").text_content() or "").strip(), "Total 1")
+        check("filter text survives the re-render",
+              mcol.locator('input.el-input__inner[placeholder="filter column"]').input_value(),
+              "695-594")
+
+        # --------------------------------------------- ATD/ATA write-back
+        section("Update ATA write-back (SOP #2)")
+        atd.locator(".el-table__fixed tbody tr.el-table__row").first            .locator(".el-checkbox__inner").first.click()
+        check("exactly one row selected",
+              (atd.locator("#atd-selection-count").text_content() or "").strip(), "1")
+
+        atd.locator('button[data-action="update-ata"]').click()
+        check("dialog switches to ATA mode",
+              (atd.locator("#dlg-atd-title").text_content() or "").strip(), "Update ATA")
+        check("dialog carries the selected MAWB",
+              (atd.locator("#f-mawb").text_content() or "").strip(), "695-59478845")
+
+        atd.locator("#f-date").fill("2026-04-16")
+        atd.locator("#f-time").fill("01:10")
+        atd.locator('button[data-action="save-single"]').click()
+        page.wait_for_timeout(900)
+        check("success toast",
+              (atd.locator("#toast-host .el-message__content").first.text_content() or "").strip(),
+              "ATA set to 2026-04-16 01:10:00 for 695-59478845")
+
+        # The toast alone proves nothing -- the point of the backend is that the
+        # write survives a reload, so assert against the API, not the DOM.
+        persisted = requests.get(f"{BASE}/api/atd-ata/695-59478845", timeout=10).json()
+        check("ATA reached the backend", persisted["ata"], "2026-04-16 01:10:00")
+        check("status derived from the write", persisted["status"], "Completed")
+
+        # ------------------------------------- Import Confirm write-back
+        section("Import Confirm write-back (SOP #1)")
+        page.evaluate("() => window.__APEX_SHELL__.showFrame(16)")
+        ic.locator(".el-table__body-wrapper tr.el-table__row").first.wait_for(timeout=20_000)
+        page.wait_for_timeout(600)
+
+        mawb = (ic.locator(".el-table__body-wrapper tr.el-table__row").first
+                  .locator("td").nth(7).text_content() or "").strip()
+        check("read a MAWB off the grid", bool(mawb), True)
+
+        # An earlier section already ticked row 0, and frames are never
+        # unmounted, so that selection is still live. Click only if it is not,
+        # otherwise this would toggle it back off.
+        if (ic.locator("#ic-selection-count").text_content() or "").strip() != "1":
+            ic.locator(".el-table__fixed tbody tr.el-table__row").first               .locator(".el-checkbox__inner").first.click()
+        check("exactly one Import Confirm row selected",
+              (ic.locator("#ic-selection-count").text_content() or "").strip(), "1")
+
+        ic.locator('button[data-action="confirm"]').click()
+        check("Confirm opens the Import Confirm dialog",
+              ic.locator("#dlg-import-confirm").is_visible(), True)
+        check("dialog seeded with the selected MAWB",
+              (ic.locator("#ic-mawb").text_content() or "").strip(), mawb)
+
+        ic.locator("#ic-airline").fill("BR")
+        ic.locator("#ic-flight").fill("BR0630")
+        ic.locator("#ic-eta-date").fill("2026-04-16")
+        ic.locator("#ic-eta-time").fill("01:10")
+        ic.locator("#ic-atd-date").fill("2026-04-15")
+        ic.locator("#ic-atd-time").fill("03:20")
+        ic.locator('button[data-action="ic-save"]').click()
+        page.wait_for_timeout(900)
+        check("save toast",
+              (ic.locator("#toast-host .el-message__content").first.text_content() or "").strip(),
+              f"Saved {mawb} - flight BR0630, ETA 2026-04-16 01:10:00")
+
+        saved = requests.get(f"{BASE}/api/import-confirm/{mawb}", timeout=10).json()
+        check("ETA reached the backend", saved["eta"], "2026-04-16 01:10:00")
+        check("Flight No reached the backend", saved["flight_no"], "BR0630")
+        check("ATD reached the backend", saved["atd"], "2026-04-15 03:20:00")
+
+        # ------------------------------------------------- batch update
+        # SOP #1 Step 5: one dialog for every shipment sharing a flight and ETA
+        # date. The Update Type select is the part that decides which column is
+        # written, so an unopenable dropdown would silently write nothing.
+        section("Batch Update (SOP #1 Step 5)")
+        rows = ic.locator(".el-table__fixed tbody tr.el-table__row")
+        for i in range(3):
+            box = rows.nth(i).locator(".el-checkbox__inner").first
+            if not ic.locator(".el-table__fixed tbody tr.el-table__row").nth(i)                      .locator(".el-checkbox__original").first.is_checked():
+                box.click()
+        check("three rows selected",
+              (ic.locator("#ic-selection-count").text_content() or "").strip(), "3")
+
+        ic.locator('button[data-action="batch-update"]').click()
+        check("Batch Update dialog opens",
+              ic.locator("#dlg-batch-update").is_visible(), True)
+
+        picker = ic.locator("#batch-update-type")
+        picker.locator(".el-input__inner").first.click()
+        option = picker.locator("li.el-select-dropdown__item", has_text="Flight(Last Leg)").first
+        check("Update Type dropdown actually opens", option.is_visible(), True)
+        option.click()
+        check("Update Type selected",
+              picker.locator(".el-input__inner").first.input_value(), "Flight(Last Leg)")
+
+        ic.locator("#batch-data").fill("BR0630")
+        ic.locator('button[data-action="batch-update-apply"]').click()
+        page.wait_for_timeout(900)
+        check("batch toast",
+              (ic.locator("#toast-host .el-message__content").first.text_content() or "").strip(),
+              "Flight(Last Leg) set to BR0630 on 3 shipment(s)")
+
+        batched = requests.get(f"{BASE}/api/import-confirm?page_size=500", timeout=10).json()
+        hits = sum(1 for r in batched["items"] if r.get("flight_no") == "BR0630")
+        check("three shipments carry the batched flight", hits, 3)
 
         browser.close()
 

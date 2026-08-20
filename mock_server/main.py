@@ -12,6 +12,7 @@ import base64
 import io
 import json
 import os
+import re
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -142,6 +143,28 @@ def init_db() -> None:
                 last_updated        TEXT
             );
 
+            -- Update ATD&ATA grid (SOP #2). The frame used to render this
+            -- straight from assets/apex-data.js with no persistence, so a bot
+            -- write could never be verified. It is a real table now, seeded
+            -- from that same fixture so the two stay in step.
+            CREATE TABLE IF NOT EXISTS atd_ata (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                mawb            TEXT    UNIQUE NOT NULL,
+                hawb            TEXT,
+                customer        TEXT,
+                airline         TEXT,
+                flight          TEXT,
+                status          TEXT,
+                pol             TEXT,
+                pod             TEXT,
+                sla_date        TEXT,
+                etd_orig        TEXT,
+                eta             TEXT,
+                atd             TEXT,
+                ata             TEXT,
+                last_updated    TEXT
+            );
+
             CREATE TABLE IF NOT EXISTS pickup_report (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 bl_no           TEXT    UNIQUE NOT NULL,
@@ -170,6 +193,102 @@ def init_db() -> None:
 
 
 init_db()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fixture seeding
+#
+# Both grids render from assets/apex-data.js. Seeding the DB from that same
+# file means GET/PATCH address exactly the rows the UI shows -- without it a
+# bot writing to a MAWB it just read off the grid gets a 404.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_FIXTURE_JS = os.path.join(FRONTEND_DIR, "assets", "apex-data.js")
+
+# assets/apex-data.js JS key -> DB column, per table.
+ATD_JS_TO_DB: Dict[str, str] = {
+    "mawb": "mawb", "hawb": "hawb", "customer": "customer", "airline": "airline",
+    "flight": "flight", "status": "status", "pol": "pol", "pod": "pod",
+    "slaDate": "sla_date", "etdOrig": "etd_orig", "eta": "eta",
+    "atd": "atd", "ata": "ata",
+}
+
+IC_JS_TO_DB: Dict[str, str] = {
+    "status": "status", "abiStatus": "abi_query_status", "abiMatch": "abi_query_match",
+    "tags": "tags", "uld": "uld_no", "customer": "hawb_customer",
+    "mno": "mawb", "hno": "hawb", "eta": "eta", "pol": "pol", "pod": "pod",
+    "airline": "airline", "firm": "firm_code", "flight": "flight_no",
+    "destHandling": "dest_handling_office", "destGateway": "dest_gateway_office",
+    "addr": "address", "lfd": "last_free_date", "wt": "wt",
+    "scStatus": "sc_job_status", "opRem": "op_remarks", "scJob": "sc_job_no",
+    "preAlert": "pre_alert_date", "destCs": "dest_cs", "isOvs": "is_ovs_agent",
+    "qSend": "query_send_date", "qUpdate": "query_update_date", "operator": "operator",
+}
+
+
+def _read_fixture(name: str) -> List[Dict[str, Any]]:
+    """Pull one `var NAME = [ ... ];` array out of apex-data.js.
+
+    The fixtures are plain JSON arrays inside that file, so this is a slice and
+    a json.loads rather than anything resembling JS parsing.
+    """
+    try:
+        with io.open(_FIXTURE_JS, encoding="utf-8") as fh:
+            js = fh.read()
+    except OSError:
+        return []
+    pattern = r"var {} = (\[.*?\n  \]);"
+    match = re.search(pattern.format(name), js, re.S)
+    if not match:
+        return []
+    try:
+        return json.loads(match.group(1))
+    except ValueError:
+        return []
+
+
+def _seed_atd_ata(conn: sqlite3.Connection) -> int:
+    rows = _read_fixture("ATD_ATA_DATA")
+    for row in rows:
+        mapped = {db: row.get(js, "") for js, db in ATD_JS_TO_DB.items()}
+        if not mapped.get("mawb"):
+            continue
+        mapped["last_updated"] = now_iso()
+        cols = list(mapped)
+        conn.execute(
+            f"INSERT OR REPLACE INTO atd_ata ({', '.join(cols)}) "
+            f"VALUES ({', '.join('?' for _ in cols)})",
+            [mapped[c] for c in cols],
+        )
+    return len(rows)
+
+
+def _seed_import_confirm(conn: sqlite3.Connection) -> int:
+    rows = _read_fixture("IC_PENDING_DATA")
+    for row in rows:
+        mapped = {db: row.get(js, "") for js, db in IC_JS_TO_DB.items()}
+        if not mapped.get("mawb"):
+            continue
+        mapped["bot_status"] = "pending"
+        mapped["last_updated"] = now_iso()
+        cols = list(mapped)
+        conn.execute(
+            f"INSERT OR REPLACE INTO import_confirm ({', '.join(cols)}) "
+            f"VALUES ({', '.join('?' for _ in cols)})",
+            [mapped[c] for c in cols],
+        )
+    return len(rows)
+
+
+def seed_fixtures(force: bool = False) -> Dict[str, int]:
+    """Seed empty tables from the JS fixtures. `force` reseeds regardless."""
+    counts = {"atd_ata": 0, "import_confirm": 0}
+    with get_conn() as conn:
+        if force or conn.execute("SELECT COUNT(*) FROM atd_ata").fetchone()[0] == 0:
+            counts["atd_ata"] = _seed_atd_ata(conn)
+        if force or conn.execute("SELECT COUNT(*) FROM import_confirm").fetchone()[0] == 0:
+            counts["import_confirm"] = _seed_import_confirm(conn)
+    return counts
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Column name normalisation maps  (Excel header → DB column)
@@ -333,6 +452,14 @@ class LoginRequest(BaseModel):
 
 
 class BotResult(BaseModel):
+    # SOP #1 writes Flight No + ETA on the Import Confirm modal; the original
+    # model only carried the bot's own bot_eta/bot_etd shadow columns, so a
+    # write to the operational fields had nowhere to land.
+    eta: Optional[str] = None
+    flight_no: Optional[str] = None
+    airline: Optional[str] = None
+    status: Optional[str] = None
+    op_remarks: Optional[str] = None
     ata: Optional[str] = None
     atd: Optional[str] = None
     source_ata: Optional[str] = None
@@ -716,21 +843,155 @@ def get_stats():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Update ATD & ATA  (SOP #2)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AtdAtaUpdate(BaseModel):
+    atd: Optional[str] = None
+    ata: Optional[str] = None
+    flight: Optional[str] = None
+    status: Optional[str] = None
+
+
+def _atd_ata_status(row: Dict[str, Any]) -> str:
+    """Mirror statusAfter() in frames/updateAtdAta.html so the grid and the DB
+    never disagree about what a shipment's milestone state is."""
+    if row.get("ata"):
+        return "Completed"
+    if row.get("atd"):
+        return "Pending Arrival"
+    return "Pending Depart"
+
+
+@app.get("/api/atd-ata", summary="List Update ATD&ATA rows")
+def list_atd_ata(
+    customer: Optional[str] = Query(None),
+    pod: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    mawb: Optional[str] = Query(None, description="substring match, as the grid filter does"),
+):
+    clauses: List[str] = []
+    params: List[Any] = []
+    if customer and customer != "All":
+        clauses.append("customer = ?")
+        params.append(customer)
+    if pod and pod != "All":
+        clauses.append("pod = ?")
+        params.append(pod)
+    if status and status != "All":
+        clauses.append("status = ?")
+        params.append(status)
+    if mawb:
+        clauses.append("mawb LIKE ?")
+        params.append(f"%{mawb}%")
+
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM atd_ata {where} ORDER BY id ASC", params
+        ).fetchall()
+    return {"total": len(rows), "items": rows_to_dicts(rows)}
+
+
+@app.get("/api/atd-ata/{mawb}", summary="Get a single Update ATD&ATA row")
+def get_atd_ata(mawb: str):
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM atd_ata WHERE mawb = ?", [mawb]).fetchone()
+    if not row:
+        raise HTTPException(404, f"MAWB {mawb!r} not found")
+    return dict(row)
+
+
+@app.patch("/api/atd-ata/{mawb}", summary="Write ATD/ATA back for a single MAWB")
+def patch_atd_ata(mawb: str, payload: AtdAtaUpdate):
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "No fields to update")
+
+    with get_conn() as conn:
+        row = conn.execute("SELECT * FROM atd_ata WHERE mawb = ?", [mawb]).fetchone()
+        if not row:
+            raise HTTPException(404, f"MAWB {mawb!r} not found")
+
+        merged = dict(row)
+        merged.update(updates)
+        # Status is derived unless the caller states one explicitly.
+        updates.setdefault("status", _atd_ata_status(merged))
+        updates["last_updated"] = now_iso()
+
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        conn.execute(
+            f"UPDATE atd_ata SET {set_clause} WHERE mawb = ?",
+            list(updates.values()) + [mawb],
+        )
+        after = conn.execute("SELECT * FROM atd_ata WHERE mawb = ?", [mawb]).fetchone()
+
+    return {"status": "ok", "mawb": mawb, "updated": list(updates), "row": dict(after)}
+
+
+@app.post("/api/atd-ata/batch-update", summary="Write ATD/ATA back for multiple MAWBs")
+def batch_update_atd_ata(payload: Dict[str, Any] = Body(...)):
+    """`{"mawbs": [...], "field": "atd"|"ata", "value": "YYYY-MM-DD HH:MM:SS"}` —
+    the shape the grid's Batch Update ATD/ATA dialogs produce."""
+    mawbs = [str(m).strip() for m in (payload.get("mawbs") or []) if str(m).strip()]
+    field = str(payload.get("field") or "").strip().lower()
+    value = payload.get("value")
+
+    if field not in ("atd", "ata"):
+        raise HTTPException(400, "field must be 'atd' or 'ata'")
+    if not value:
+        raise HTTPException(400, "value is required")
+    if not mawbs:
+        raise HTTPException(400, "mawbs is required")
+
+    results: List[Dict[str, str]] = []
+    with get_conn() as conn:
+        for mawb in mawbs:
+            row = conn.execute("SELECT * FROM atd_ata WHERE mawb = ?", [mawb]).fetchone()
+            if not row:
+                results.append({"mawb": mawb, "status": "not_found"})
+                continue
+            merged = dict(row)
+            merged[field] = value
+            conn.execute(
+                f"UPDATE atd_ata SET {field} = ?, status = ?, last_updated = ? WHERE mawb = ?",
+                [value, _atd_ata_status(merged), now_iso(), mawb],
+            )
+            results.append({"mawb": mawb, "status": "ok"})
+
+    return {
+        "status": "ok",
+        "updated": sum(1 for r in results if r["status"] == "ok"),
+        "results": results,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Reset (test utility)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@app.post("/api/reset", summary="Clear all data (test use only)")
+@app.post("/api/reset", summary="Clear all data and reseed fixtures (test use only)")
 def reset_db():
+    """Wipe the tables, then reseed the two fixture-backed grids.
+
+    Reseeding rather than leaving them empty is deliberate: the UI renders those
+    rows regardless, so an empty table would make every bot write 404.
+    """
     with get_conn() as conn:
-        ic_count = conn.execute("SELECT COUNT(*) FROM import_confirm").fetchone()[0]
-        pr_count = conn.execute("SELECT COUNT(*) FROM pickup_report").fetchone()[0]
+        cleared = {
+            name: conn.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0]
+            for name in ("import_confirm", "pickup_report", "atd_ata")
+        }
         conn.execute("DELETE FROM import_confirm")
         conn.execute("DELETE FROM pickup_report")
-        conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('import_confirm','pickup_report')")
-    return {
-        "status": "ok",
-        "cleared": {"import_confirm": ic_count, "pickup_report": pr_count},
-    }
+        conn.execute("DELETE FROM atd_ata")
+        conn.execute(
+            "DELETE FROM sqlite_sequence "
+            "WHERE name IN ('import_confirm','pickup_report','atd_ata')"
+        )
+
+    reseeded = seed_fixtures(force=True)
+    return {"status": "ok", "cleared": cleared, "reseeded": reseeded}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -742,9 +1003,16 @@ def root():
     with get_conn() as conn:
         ic = conn.execute("SELECT COUNT(*) FROM import_confirm").fetchone()[0]
         pr = conn.execute("SELECT COUNT(*) FROM pickup_report").fetchone()[0]
+        aa = conn.execute("SELECT COUNT(*) FROM atd_ata").fetchone()[0]
     return {
         "status": "ok",
         "service": "Apex Workflow X-Control Mock API",
         "version": "1.0.0",
-        "records": {"import_confirm": ic, "pickup_report": pr},
+        "records": {"import_confirm": ic, "pickup_report": pr, "atd_ata": aa},
     }
+
+
+# Seed on startup. This lives at the bottom of the module rather than beside
+# init_db() because seed_fixtures() calls now_iso(), defined further up only
+# after the Pydantic schemas.
+seed_fixtures()

@@ -220,16 +220,45 @@
       </div>
       <div class="el-dialog__body">
         <p><span id="batch-count">0</span> row(s) selected.</p>
-        <div class="el-form-item">
-          <label class="el-form-item__label">Operator</label>
+        <div class="el-form-item is-required">
+          <label class="el-form-item__label">Updated Type</label>
           <div class="el-form-item__content">
-            <div class="el-select el-select--small" id="batch-operator"></div>
+            <div class="el-select el-select--small" id="batch-update-type"></div>
           </div>
         </div>
-        <div class="el-form-item">
-          <label class="el-form-item__label">OP Remarks</label>
+        <div class="el-form-item is-required">
+          <label class="el-form-item__label">Data</label>
           <div class="el-form-item__content">
-            <textarea rows="3" class="el-textarea__inner" id="batch-remarks"></textarea>
+            <textarea rows="3" class="el-textarea__inner" id="batch-data"
+                      placeholder="One identifier per line"></textarea>
+          </div>
+        </div>
+        <div class="el-form-item is-required">
+          <label class="el-form-item__label">Fields</label>
+          <div class="el-form-item__content">
+            <div class="el-select el-select--small" id="batch-field"></div>
+          </div>
+        </div>
+        <div class="el-form-item is-required">
+          <label class="el-form-item__label">Value</label>
+          <div class="el-form-item__content">
+            <div class="el-input el-input--small" id="batch-value-text">
+              <input type="text" class="el-input__inner" id="batch-value" placeholder="Value to apply">
+            </div>
+            <!-- Only ETA is a timestamp, so the plain text box is swapped for a
+                 datetime picker rather than asking operators to type the format. -->
+            <div class="el-input el-input--small el-input--prefix" id="batch-value-datetime" style="display:none;">
+              <span class="el-input__prefix"><span class="el-input__prefix-inner">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor"></circle>
+                  <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-linecap="round"></path>
+                </svg>
+              </span></span>
+              <input type="datetime-local" step="1" class="el-input__inner" id="batch-value-dt">
+            </div>
+            <div class="apex-form-tip" id="batch-eta-note" style="display:none;">
+              The ETA of the associated HAWBs will also be updated simultaneously.
+            </div>
           </div>
         </div>
       </div>
@@ -307,25 +336,199 @@
     </div>
   </div>
 
+  <!-- ============ IMPORT CONFIRM (SOP #1 Step 4) ============
+       Select a shipment -> Confirm -> edit Flight Info / Other Info -> Save.
+       Sections, labels and the footer button row follow the SOP screenshot.
+       Date-times are split into native date+time inputs, matching the
+       convention already used by frames/updateAtdAta.html. Production puts an
+       Element UI picker here instead, so a bot must abstract that difference. -->
+  <div class="el-dialog__wrapper" id="dlg-import-confirm" style="display: none;">
+    <div role="dialog" aria-modal="true" aria-label="Import Confirm" class="el-dialog" style="width: 900px;">
+      <div class="el-dialog__header">
+        <span class="el-dialog__title">Import Confirm</span>
+        <button type="button" aria-label="Close" class="el-dialog__headerbtn" data-close>&times;</button>
+      </div>
+      <div class="el-dialog__body">
+
+        <div class="apex-section-title">MAWB Info</div>
+        <div class="apex-form-grid">
+          <div class="el-form-item is-required">
+            <label class="el-form-item__label">Shipper</label>
+            <div class="el-form-item__content">
+              <div class="el-input el-input--small"><input type="text" readonly="readonly" class="el-input__inner" id="ic-shipper"></div>
+            </div>
+          </div>
+          <div class="el-form-item is-required">
+            <label class="el-form-item__label">Consignee</label>
+            <div class="el-form-item__content">
+              <div class="el-input el-input--small"><input type="text" readonly="readonly" class="el-input__inner" id="ic-consignee"></div>
+            </div>
+          </div>
+          <div class="el-form-item">
+            <label class="el-form-item__label">M#</label>
+            <div class="el-form-item__content"><span id="ic-mawb"></span></div>
+          </div>
+          <div class="el-form-item">
+            <label class="el-form-item__label">H#</label>
+            <div class="el-form-item__content"><span id="ic-hawb"></span></div>
+          </div>
+          <div class="el-form-item">
+            <label class="el-form-item__label">WT</label>
+            <div class="el-form-item__content"><span id="ic-wt"></span></div>
+          </div>
+          <div class="el-form-item">
+            <label class="el-form-item__label">Dest Gateway Office</label>
+            <div class="el-form-item__content"><span id="ic-gateway"></span></div>
+          </div>
+        </div>
+
+        <div class="apex-section-title">Flight Info</div>
+        <table class="apex-flight-info">
+          <thead>
+            <tr>
+              <th>* Airline</th>
+              <th>* Flight#</th>
+              <th>MAWB Airport of Origin/Departure</th>
+              <th>MAWB Airport of Destination</th>
+              <th>ETD</th>
+              <th>ETA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="el-input el-input--small"><input type="text" class="el-input__inner" id="ic-airline"></div></td>
+              <td><div class="el-input el-input--small"><input type="text" class="el-input__inner" id="ic-flight"></div></td>
+              <td><div class="el-input el-input--small"><input type="text" class="el-input__inner" id="ic-origin"></div></td>
+              <td><div class="el-input el-input--small"><input type="text" class="el-input__inner" id="ic-dest"></div></td>
+              <td>
+                <div class="el-input el-input--small" style="width:130px;display:inline-block;"><input type="date" class="el-input__inner" id="ic-etd-date"></div>
+                <div class="el-input el-input--small" style="width:100px;display:inline-block;"><input type="time" class="el-input__inner" id="ic-etd-time"></div>
+              </td>
+              <td>
+                <div class="el-input el-input--small" style="width:130px;display:inline-block;"><input type="date" class="el-input__inner" id="ic-eta-date"></div>
+                <div class="el-input el-input--small" style="width:100px;display:inline-block;"><input type="time" class="el-input__inner" id="ic-eta-time"></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="apex-section-title">Other Info</div>
+        <div class="apex-form-grid">
+          <div class="el-form-item is-required">
+            <label class="el-form-item__label">Terminal Last Free Day</label>
+            <div class="el-form-item__content">
+              <div class="el-input el-input--small"><input type="text" readonly="readonly" class="el-input__inner" id="ic-lfd"></div>
+            </div>
+          </div>
+          <div class="el-form-item">
+            <label class="el-form-item__label">OP Remarks</label>
+            <div class="el-form-item__content">
+              <textarea rows="2" class="el-textarea__inner" id="ic-op-remarks"></textarea>
+            </div>
+          </div>
+          <div class="el-form-item is-required">
+            <label class="el-form-item__label">ATD</label>
+            <div class="el-form-item__content">
+              <div class="el-input el-input--small" style="width:130px;display:inline-block;"><input type="date" class="el-input__inner" id="ic-atd-date"></div>
+              <div class="el-input el-input--small" style="width:100px;display:inline-block;"><input type="time" class="el-input__inner" id="ic-atd-time"></div>
+            </div>
+          </div>
+          <div class="el-form-item is-required">
+            <label class="el-form-item__label">ATA</label>
+            <div class="el-form-item__content">
+              <div class="el-input el-input--small" style="width:130px;display:inline-block;"><input type="date" class="el-input__inner" id="ic-ata-date"></div>
+              <div class="el-input el-input--small" style="width:100px;display:inline-block;"><input type="time" class="el-input__inner" id="ic-ata-time"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="el-dialog__footer">
+        <button type="button" class="el-button el-button--primary el-button--medium" data-action="ic-create-job-sc"><span>Create Job to SC</span></button>
+        <button type="button" class="el-button el-button--primary el-button--medium" data-action="ic-create-job-confirm"><span>Create Job &amp; Confirm</span></button>
+        <button type="button" class="el-button el-button--success el-button--medium" data-action="ic-save"><span>Save</span></button>
+        <button type="button" class="el-button el-button--default el-button--medium" data-close><span>Cancel</span></button>
+        <button type="button" class="el-button el-button--danger el-button--medium" data-action="ic-abi-query-result"><span>ABI Query Result</span></button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-host"></div>
 </div>
 
 <script src="../assets/apex-enums.js"></script>
 <script src="../assets/apex-data.js"></script>
 <script src="../assets/el-table.js"></script>
+<script src="../assets/api.js"></script>
 <script>
 (function () {
   'use strict';
 
   var SCOPE   = 'data-v-47b11b5c';
+  // Fixture rows are the offline fallback; /api/import-confirm is the real
+  // source once the backend answers. It seeds itself from this same fixture.
   var rows    = APEX_DATA.IC_PENDING_DATA.slice();
   var columns = APEX_DATA.IC_COLUMNS;
   var selected = [];
+  var online   = false;
+  var colFilters = {};
+  var editRow  = null;      // the shipment open in #dlg-import-confirm
+
+  /* -------------------------------------------------------------- backend */
+
+  function loadFromApi() {
+    if (!window.APEX_API) return Promise.resolve(false);
+    return APEX_API.getJSON('/api/import-confirm?page_size=500').then(function (data) {
+      var items = (data && data.items) || [];
+      if (!items.length) return false;
+      allRows = items.map(APEX_API.rowFromApi);
+      online = true;
+      applyFilters();
+      return true;
+    }).catch(function () { return false; });
+  }
+
+  /* ------------------------------------------------------- datetime split */
+
+  /* The grid stores 'YYYY-MM-DD HH:MM:SS'; the dialog edits it as a native
+     date input plus a native time input. These two convert between them. */
+  function splitDateTime(value) {
+    var parts = String(value || '').split(' ');
+    return { date: parts[0] || '', time: (parts[1] || '').slice(0, 5) };
+  }
+
+  function joinDateTime(date, time) {
+    if (!date || !time) return '';
+    return date + ' ' + time + ':00';
+  }
+
+  function setDateTime(dateId, timeId, value) {
+    var v = splitDateTime(value);
+    document.getElementById(dateId).value = v.date;
+    document.getElementById(timeId).value = v.time;
+  }
+
+  function getDateTime(dateId, timeId) {
+    return joinDateTime(document.getElementById(dateId).value,
+                        document.getElementById(timeId).value);
+  }
 
   /* ------------------------------------------------------------ pagination */
 
   var pageSize = 50;
   var page     = 1;
+
+  /* `allRows` is everything; `rows` is what survives the header filters and is
+     what the pager and every index-based action operate on. Before the filters
+     did anything there was only one list, so these were the same thing. */
+  var allRows = rows;
+
+  function applyFilters() {
+    rows = allRows.filter(function (r) { return ElTableMock.matchesFilters(r, colFilters); });
+    page = 1;
+    selected = [];
+    renderMain();
+  }
 
   function pageCount() { return Math.max(1, Math.ceil(rows.length / pageSize)); }
 
@@ -371,6 +574,11 @@
       scope: SCOPE,
       fixedCount: 1,
       bodyHeight: 424,
+      filters: colFilters,
+      onFilter: function (next) {
+        colFilters = next;
+        applyFilters();
+      },
       onSelect: function (idxs) {
         // indexes come back relative to the visible page
         selected = idxs.map(function (i) { return offset + i; });
@@ -480,11 +688,14 @@
     }).join('');
   }
 
-  function buildOperatorSelect() {
-    var host = document.getElementById('batch-operator');
+  /* One builder for every mock select in this file; the two Batch Update
+     dropdowns differ only in the option list they carry. */
+  function buildSelect(hostId, options, placeholder) {
+    var host = document.getElementById(hostId);
     host.innerHTML =
       '<div class="el-input el-input--small el-input--suffix">' +
-        '<input type="text" readonly="readonly" placeholder="Please select" class="el-input__inner">' +
+        '<input type="text" readonly="readonly" placeholder="' +
+          ElTableMock.esc(placeholder || 'Please select') + '" class="el-input__inner">' +
         '<span class="el-input__suffix"><span class="el-input__suffix-inner">' +
           '<i class="el-select__caret el-input__icon el-icon-arrow-up"></i>' +
         '</span></span>' +
@@ -492,7 +703,7 @@
       '<div class="el-select-dropdown el-popper" style="display:none;">' +
         '<div class="el-scrollbar"><div class="el-scrollbar__wrap">' +
           '<ul class="el-scrollbar__view el-select-dropdown__list">' +
-            APEX_ENUMS.OPERATORS.map(function (o) {
+            options.map(function (o) {
               return '<li class="el-select-dropdown__item"><span>' + ElTableMock.esc(o) + '</span></li>';
             }).join('') +
           '</ul>' +
@@ -500,20 +711,167 @@
       '</div>';
   }
 
+  function selectValue(hostId) {
+    return document.querySelector('#' + hostId + ' .el-input__inner').value.trim();
+  }
+
+  function setSelectValue(hostId, value) {
+    document.querySelector('#' + hostId + ' .el-input__inner').value = value;
+    document.querySelectorAll('#' + hostId + ' .el-select-dropdown__item').forEach(function (li) {
+      li.classList.toggle('selected', li.textContent.trim() === value);
+    });
+  }
+
+  /* ------------------------------------------------ Import Confirm dialog */
+
+  /* SOP #1 Step 5 offers these four Fields; only two map onto a column this
+     grid actually has, so the other two are refused rather than silently
+     ignored. */
+  var BATCH_TYPE_TO_FIELD = {
+    'Flight(Last Leg)': 'flight',
+    'ETA': 'eta'
+  };
+
+  var BATCH_FIELDS = ['Terminal Location', 'Warehouse', 'Flight(Last Leg)', 'ETA'];
+
+  function openImportConfirm(row) {
+    editRow = row;
+
+    document.getElementById('ic-mawb').textContent    = row.mno || '';
+    document.getElementById('ic-hawb').textContent    = row.hno || '';
+    document.getElementById('ic-wt').textContent      = row.wt || '';
+    document.getElementById('ic-gateway').textContent = row.destGateway || '';
+    document.getElementById('ic-shipper').value       = 'APEX LOGISTICS INTERNATIONAL (HK) LIMITED';
+    document.getElementById('ic-consignee').value     = row.customer || '';
+    document.getElementById('ic-lfd').value           = row.lfd || '';
+
+    document.getElementById('ic-airline').value = row.airline || '';
+    document.getElementById('ic-flight').value  = row.flight || '';
+    document.getElementById('ic-origin').value  = row.pol || '';
+    document.getElementById('ic-dest').value    = row.pod || '';
+    document.getElementById('ic-op-remarks').value = row.opRem || '';
+
+    setDateTime('ic-etd-date', 'ic-etd-time', row.etd || '');
+    setDateTime('ic-eta-date', 'ic-eta-time', row.eta || '');
+    setDateTime('ic-atd-date', 'ic-atd-time', row.atd || '');
+    setDateTime('ic-ata-date', 'ic-ata-time', row.ata || '');
+
+    openDialog('dlg-import-confirm');
+  }
+
+  /* -------------------------------------------------- Batch Update dialog */
+
+  /* Which identifier the Data box holds, and which row property it matches. */
+  var BATCH_UPDATED_TYPES = ['MAWB#', 'HAWB#'];
+  var BATCH_TYPE_TO_KEY = { 'MAWB#': 'mno', 'HAWB#': 'hno' };
+
+  function batchFieldIsDateTime() {
+    return selectValue('batch-field') === 'ETA';
+  }
+
+  /* ETA is a timestamp, so its Value control is a datetime picker; every other
+     field stays a free-text box. The red note mirrors production's warning that
+     the write cascades to the HAWBs hanging off the MAWB. */
+  function syncBatchValueControl() {
+    var isDt = batchFieldIsDateTime();
+    document.getElementById('batch-value-text').style.display     = isDt ? 'none' : '';
+    document.getElementById('batch-value-datetime').style.display = isDt ? '' : 'none';
+    document.getElementById('batch-eta-note').style.display       = isDt ? '' : 'none';
+    if (isDt && !document.getElementById('batch-value-dt').value) {
+      var now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('batch-value-dt').value = now.toISOString().slice(0, 19);
+    }
+  }
+
+  function batchValue() {
+    if (!batchFieldIsDateTime()) return document.getElementById('batch-value').value.trim();
+    // datetime-local yields 'YYYY-MM-DDTHH:MM[:SS]'; the grid stores a space and
+    // always carries seconds.
+    var v = document.getElementById('batch-value-dt').value;
+    if (!v) return '';
+    v = v.replace('T', ' ');
+    return v.length === 16 ? v + ':00' : v;
+  }
+
+  function batchIdentifiers() {
+    return document.getElementById('batch-data').value
+      .split(/[\s,;]+/)
+      .map(function (t) { return t.trim(); })
+      .filter(Boolean);
+  }
+
   /* -------------------------------------------------------------- actions */
 
   var ACTIONS = {
     'clear-all-search': function () {
-      document.querySelectorAll('.el-table .el-input__inner').forEach(function (i) { i.value = ''; });
+      colFilters = {};
+      applyFilters();
       toast('All column filters cleared');
     },
     'confirm': function () {
       if (!selected.length) return toast('Select at least one row first', 'error');
+      // SOP #1 Step 4 is a single-shipment edit. Multi-select keeps the old
+      // bulk confirm, which is what the toolbar did before the dialog existed.
+      if (selected.length === 1) return openImportConfirm(rows[selected[0]]);
       selected.forEach(function (i) { rows[i].status = 'Partial'; });
       renderMain();
       toast(selected.length + ' shipment(s) confirmed');
       selected = [];
     },
+    'ic-save': function () {
+      if (!editRow) return;
+      var eta = getDateTime('ic-eta-date', 'ic-eta-time');
+      var flight = document.getElementById('ic-flight').value.trim();
+      if (!flight) return toast('Flight# is required', 'error');
+      if (!eta) return toast('ETA is required', 'error');
+
+      var patch = {
+        flight_no: flight,
+        eta: eta,
+        airline: document.getElementById('ic-airline').value.trim(),
+        atd: getDateTime('ic-atd-date', 'ic-atd-time'),
+        ata: getDateTime('ic-ata-date', 'ic-ata-time'),
+        op_remarks: document.getElementById('ic-op-remarks').value,
+        status: 'Partial'
+      };
+
+      editRow.flight = patch.flight_no;
+      editRow.eta = patch.eta;
+      editRow.airline = patch.airline;
+      editRow.pol = document.getElementById('ic-origin').value.trim();
+      editRow.pod = document.getElementById('ic-dest').value.trim();
+      editRow.opRem = patch.op_remarks;
+      editRow.status = 'Partial';
+
+      var mawb = editRow.mno;
+      document.getElementById('dlg-import-confirm').style.display = 'none';
+      renderMain();
+      selected = [];
+
+      var okMsg = 'Saved ' + mawb + ' - flight ' + patch.flight_no + ', ETA ' + patch.eta;
+      if (!online) return toast(okMsg + ' (offline - not saved)', 'warning');
+
+      // Only send fields that carry a value; the backend treats null as absent.
+      Object.keys(patch).forEach(function (k) { if (!patch[k]) delete patch[k]; });
+      APEX_API.patchJSON('/api/import-confirm/' + encodeURIComponent(mawb), patch)
+        .then(function () { toast(okMsg); })
+        .catch(function (err) {
+          toast('Save failed for ' + mawb + ': ' + (err && err.message || err), 'error');
+        });
+    },
+    'ic-create-job-sc': function () {
+      if (!editRow) return;
+      editRow.scStatus = 'Existing';
+      if (!editRow.scJob) editRow.scJob = 'SC' + String(editRow.mno).replace('-', '');
+      renderMain();
+      toast('SC job created for ' + editRow.mno);
+    },
+    'ic-create-job-confirm': function () {
+      ACTIONS['ic-create-job-sc']();
+      ACTIONS['ic-save']();
+    },
+    'ic-abi-query-result': function () { toast('ABI query result requested'); },
     'create-job-to-sc': function () {
       if (!selected.length) return toast('Select at least one row first', 'error');
       selected.forEach(function (i) {
@@ -542,19 +900,72 @@
     'account-mapping': function () { openDialog('dlg-account-mapping'); },
     'get-sc-job':     function () { openDialog('dlg-get-sc-job'); },
     'batch-update':   function () {
+      var type = selectValue('batch-update-type') || 'MAWB#';
+      setSelectValue('batch-update-type', type);
       document.getElementById('batch-count').textContent = selected.length;
+      // Production seeds Data with the identifiers of whatever is ticked, so the
+      // dialog opens ready to submit.
+      var key = BATCH_TYPE_TO_KEY[type];
+      document.getElementById('batch-data').value = selected
+        .map(function (i) { return rows[i][key] || ''; })
+        .filter(Boolean)
+        .join('\n');
+      document.getElementById('batch-value').value = '';
+      document.getElementById('batch-value-dt').value = '';
+      syncBatchValueControl();
       openDialog('dlg-batch-update');
     },
     'batch-update-apply': function () {
-      var op  = document.querySelector('#batch-operator .el-input__inner').value;
-      var rem = document.getElementById('batch-remarks').value;
-      selected.forEach(function (i) {
-        if (op)  rows[i].operator = op;
-        if (rem) rows[i].opRem = rem;
+      var type  = selectValue('batch-update-type');
+      var ids   = batchIdentifiers();
+      var label = selectValue('batch-field');
+      var value = batchValue();
+
+      if (!type) return toast('Select an Updated Type', 'error');
+      if (!ids.length) return toast('Enter at least one ' + type + ' in Data', 'error');
+      if (!label) return toast('Select a field to update', 'error');
+
+      // SOP #1 Step 5: same airline, same flight, same ETA date -> one write.
+      var field = BATCH_TYPE_TO_FIELD[label];
+      if (!field) return toast('Batch update of "' + label + '" is not modelled', 'error');
+      if (!value) return toast('Enter a Value', 'error');
+
+      var key = BATCH_TYPE_TO_KEY[type];
+      var wanted = {};
+      ids.forEach(function (id) { wanted[id] = false; });
+      // A HAWB cell can carry several comma-separated numbers, so match on any
+      // of them rather than on the whole cell — and tick off each identifier
+      // that landed, since one row can answer for several of them.
+      var touched = rows.filter(function (r) {
+        return String(r[key] || '').split(/\s*,\s*/).reduce(function (hit, v) {
+          if (!(v in wanted)) return hit;
+          wanted[v] = true;
+          return true;
+        }, false);
       });
+      if (!touched.length) return toast('No row matches the ' + type + ' values in Data', 'error');
+
+      touched.forEach(function (r) { r[field] = value; });
       renderMain();
       document.getElementById('dlg-batch-update').style.display = 'none';
-      toast('Updated ' + selected.length + ' row(s)');
+
+      var okMsg = label + ' set to ' + value + ' on ' + touched.length + ' shipment(s)';
+      var missed = ids.filter(function (id) { return !wanted[id]; }).length;
+      if (missed > 0) okMsg += ' (' + missed + ' not found)';
+
+      if (!online) return toast(okMsg + ' (offline - not saved)', 'warning');
+
+      var apiField = field === 'flight' ? 'flight_no' : field;
+      APEX_API.postJSON('/api/import-confirm/batch-update', {
+        items: touched.map(function (r) {
+          var result = {};
+          result[apiField] = value;
+          return { mawb: r.mno, result: result };
+        })
+      }).then(function () { toast(okMsg); })
+        .catch(function (err) {
+          toast('Batch update failed: ' + (err && err.message || err), 'error');
+        });
     },
     'update-tags':    function () { buildTagChecklist(); openDialog('dlg-update-tags'); },
     'maintain-tags':  function () { buildMaintainTags(); openDialog('dlg-maintain-tags'); },
@@ -624,8 +1035,31 @@
   document.querySelector('#pane-1 .el-pagination__editor .el-input__inner')
     .addEventListener('change', function () { goToPage(parseInt(this.value, 10) || 1); });
 
-  buildOperatorSelect();
+  buildSelect('batch-update-type', BATCH_UPDATED_TYPES);
+  buildSelect('batch-field', BATCH_FIELDS);
+  setSelectValue('batch-update-type', BATCH_UPDATED_TYPES[0]);
+  // Bind at the DIALOG, not at each select: bindSelects searches *inside* what
+  // it is given, and #batch-update-type / #batch-field ARE the .el-select
+  // elements rather than containers of one. Passing them directly matched
+  // nothing, which is why the dropdowns never opened.
+  ElTableMock.bindSelects(document.getElementById('dlg-batch-update'));
+  // Picking a field swaps the Value control between text and datetime.
+  document.querySelector('#batch-field .el-input__inner')
+    .addEventListener('change', syncBatchValueControl);
+  // Switching MAWB#/HAWB# re-seeds Data from the ticked rows.
+  document.querySelector('#batch-update-type .el-input__inner')
+    .addEventListener('change', function () {
+      var key = BATCH_TYPE_TO_KEY[selectValue('batch-update-type')];
+      if (!key) return;
+      document.getElementById('batch-data').value = selected
+        .map(function (i) { return rows[i][key] || ''; })
+        .filter(Boolean)
+        .join('\n');
+    });
   renderMain();
+  // Fixture rows render first so the grid is never briefly empty; the backend
+  // load then swaps in the persisted ones.
+  loadFromApi();
   announce();
 
   /* Exposed for the mock adapter in xcontrol_bot.py. Production has no such
@@ -633,7 +1067,9 @@
   window.__APEX_MOCK__ = {
     page: 'importConfirm',
     rowCount: function () { return rows.length; },
-    setPageSize: function (n) { return Math.min(n, rows.length); }
+    setPageSize: function (n) { return Math.min(n, rows.length); },
+    isOnline: function () { return online; },
+    reload: loadFromApi
   };
 })();
 </script>

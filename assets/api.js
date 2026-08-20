@@ -57,6 +57,17 @@
     return data;
   }
 
+  async function patchJSON(path, body) {
+    var res = await fetch(url(path), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+    return data;
+  }
+
   /* Map an /api/import-confirm row onto the grid's field names. */
   function rowFromApi(r) {
     return {
@@ -97,6 +108,7 @@
     getJSON: getJSON,
     postForm: postForm,
     postJSON: postJSON,
+    patchJSON: patchJSON,
     rowFromApi: rowFromApi
   };
 })(typeof window !== 'undefined' ? window : this);

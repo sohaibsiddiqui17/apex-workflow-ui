@@ -139,12 +139,33 @@ html, body {
   font-size: 12px;
 }
 .el-input__suffix-inner { display: inline-flex; align-items: center; height: 100%; }
+
+/* Mirror of __suffix for the leading clock on the Batch Update datetime box. */
+.el-input--prefix .el-input__inner { padding-left: 30px; }
+.el-input__prefix {
+  position: absolute;
+  height: 100%;
+  left: 6px;
+  top: 0;
+  text-align: center;
+  color: #c0c4cc;
+  pointer-events: none;
+  font-size: 12px;
+}
+.el-input__prefix-inner { display: inline-flex; align-items: center; height: 100%; }
 .el-input__icon { font-style: normal; }
 
 .el-textarea__inner {
+  /* Element UI makes this display:block, and it matters. A textarea is
+     inline-block by default, so inside .el-form-item__content (line-height:32px)
+     it sits on a text baseline and drags ~11px of phantom descender space along
+     under it — enough to knock the Batch Update dialog's four stacked form rows
+     out of rhythm with each other and leave dead space above the footer. */
+  display: block;
   width: 100%;
   font-family: inherit;
   font-size: 13px;
+  line-height: 1.5;
   padding: 6px 10px;
   border: 1px solid var(--el-border);
   border-radius: 4px;
@@ -530,6 +551,8 @@ html, body {
 .el-form-item__label { text-align: right; vertical-align: middle; float: none; font-size: 14px; color: var(--el-text); line-height: 32px; padding: 0 12px 0 0; box-sizing: border-box; width: 140px; flex: 0 0 140px; }
 .el-form-item__content { line-height: 32px; position: relative; font-size: 14px; flex: 1 1 auto; min-width: 0; }
 .el-form-item.is-required .el-form-item__label::before { content: '*'; color: var(--el-danger); margin-right: 4px; }
+/* Element UI's inline form hint; used for the cascade warning under Value. */
+.apex-form-tip { color: var(--el-danger); font-size: 12px; line-height: 1.4; margin-top: 4px; }
 
 /* ============================ MISC ============================ */
 
@@ -607,3 +630,37 @@ html, body {
 }
 .apex-filterbar label { font-size: 13px; color: var(--el-text); }
 .apex-filterbar .el-select, .apex-filterbar .el-input { width: 190px; }
+
+/* Warning toast — the frames use this to say a value was applied to the grid
+   but never reached the backend, so an offline edit is never mistaken for a
+   saved one. */
+.el-message--warning { background-color: #fdf6ec; border-color: #faecd8; color: var(--el-warning, #E6A23C); }
+
+/* Import Confirm dialog (SOP #1 Step 4) */
+.apex-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text);
+  padding: 12px 0 8px;
+  border-bottom: 1px solid #EBEEF5;
+  margin-bottom: 12px;
+}
+.apex-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 24px;
+}
+.apex-form-grid .el-form-item { display: flex; align-items: flex-start; gap: 8px; }
+.apex-form-grid .el-form-item__label { flex: 0 0 170px; text-align: right; }
+.apex-form-grid .el-form-item__content { flex: 1 1 auto; min-width: 0; }
+.apex-flight-info { width: 100%; border-collapse: collapse; font-size: 13px; }
+.apex-flight-info th {
+  background: #F5F7FA;
+  color: var(--el-text);
+  font-weight: 600;
+  text-align: left;
+  padding: 8px;
+  border: 1px solid #EBEEF5;
+  white-space: nowrap;
+}
+.apex-flight-info td { padding: 6px 8px; border: 1px solid #EBEEF5; vertical-align: middle; }

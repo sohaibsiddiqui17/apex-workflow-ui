@@ -195,17 +195,60 @@
 <script src="../assets/apex-enums.js"></script>
 <script src="../assets/apex-data.js"></script>
 <script src="../assets/el-table.js"></script>
+<script src="../assets/api.js"></script>
 <script>
 (function () {
   'use strict';
 
   var SCOPE    = 'data-v-8769da1a';
+  // The fixture is the offline fallback; /api/atd-ata is the real source once
+  // the backend answers. Both carry the same 10 rows -- the backend seeds
+  // itself from this very file.
   var ALL      = APEX_DATA.ATD_ATA_DATA.slice();
   var columns  = APEX_DATA.ATD_COLUMNS;
   var view     = ALL.slice();
   var selected = [];
   var mode     = 'atd';       // 'atd' | 'ata'
   var editRow  = null;
+  var online   = false;       // did the backend answer?
+  var colFilters = {};        // header-filter state, keyed by column
+
+  /* -------------------------------------------------------------- backend */
+
+  /* /api/atd-ata is snake_case; the grid's column model is camelCase. */
+  function rowFromApi(r) {
+    return {
+      mawb:     r.mawb     || '',
+      hawb:     r.hawb     || '',
+      customer: r.customer || '',
+      airline:  r.airline  || '',
+      flight:   r.flight   || '',
+      status:   r.status   || '',
+      pol:      r.pol      || '',
+      pod:      r.pod      || '',
+      slaDate:  r.sla_date || '',
+      etdOrig:  r.etd_orig || '',
+      eta:      r.eta      || '',
+      atd:      r.atd      || '',
+      ata:      r.ata      || ''
+    };
+  }
+
+  function loadFromApi() {
+    if (!window.APEX_API) return Promise.resolve(false);
+    return APEX_API.getJSON('/api/atd-ata').then(function (data) {
+      var items = (data && data.items) || [];
+      if (!items.length) return false;
+      ALL = items.map(rowFromApi);
+      online = true;
+      applyFilters();
+      return true;
+    }).catch(function () {
+      // Served from file:// or the backend is down. The fixture rows are
+      // already on screen; edits just will not persist.
+      return false;
+    });
+  }
 
   /* --------------------------------------------------- time-rule calculator */
 
@@ -241,10 +284,15 @@
       scope: SCOPE,
       fixedCount: 1,
       bodyHeight: 420,
+      filters: colFilters,
       onSelect: function (idxs) {
         selected = idxs;
         document.getElementById('atd-selection-count').textContent = idxs.length;
         document.getElementById('atd-selection-note').style.display = idxs.length ? '' : 'none';
+      },
+      onFilter: function (next) {
+        colFilters = next;
+        applyFilters();
       }
     });
     document.getElementById('atd-total').textContent = 'Total ' + view.length;
@@ -298,7 +346,8 @@
     view = ALL.filter(function (r) {
       return (filters.customer === 'All' || r.customer === filters.customer) &&
              (filters.pod      === 'All' || r.pod      === filters.pod) &&
-             (filters.status   === 'All' || r.status   === filters.status);
+             (filters.status   === 'All' || r.status   === filters.status) &&
+             ElTableMock.matchesFilters(r, colFilters);
     });
     selected = [];
     render();
@@ -410,6 +459,7 @@
     'transit': function () { toast('Transit ATA/ATD recalculated'); },
     'clear-all-search': function () {
       filters = { customer: 'All', pod: 'All', status: 'All' };
+      colFilters = {};
       ['flt-customer', 'flt-pod', 'flt-status'].forEach(function (id) {
         document.querySelector('#' + id + ' .el-input__inner').value = '';
       });
@@ -433,26 +483,55 @@
       var t = document.getElementById('f-time').value;
       if (!d || !t) return toast('Enter a date and time', 'error');
       var val = d + ' ' + t + ':00';
-      editRow[mode] = val;
-      editRow.status = statusAfter(editRow);
+      var row = editRow;
+      var field = mode;
+
+      row[field] = val;
+      row.status = statusAfter(row);
       document.getElementById('dlg-atd').style.display = 'none';
       render();
-      toast(mode.toUpperCase() + ' set to ' + val + ' for ' + editRow.mawb);
+
+      var okMsg = field.toUpperCase() + ' set to ' + val + ' for ' + row.mawb;
+      if (!online) {
+        // Say so rather than reporting a save that never left the browser.
+        return toast(okMsg + ' (offline - not saved)', 'warning');
+      }
+      var body = {};
+      body[field] = val;
+      APEX_API.patchJSON('/api/atd-ata/' + encodeURIComponent(row.mawb), body)
+        .then(function (res) {
+          if (res && res.row) { row.status = res.row.status; render(); }
+          toast(okMsg);
+        })
+        .catch(function (err) {
+          toast('Save failed for ' + row.mawb + ': ' + (err && err.message || err), 'error');
+        });
     },
     'save-batch': function () {
       var d = document.getElementById('b-date').value;
       var t = document.getElementById('b-time').value;
       if (!d || !t) return toast('Enter a date and time', 'error');
       var val = d + ' ' + t + ':00';
+      var field = mode;
+      var mawbs = selected.map(function (i) { return view[i].mawb; });
+
       selected.forEach(function (i) {
-        view[i][mode] = val;
+        view[i][field] = val;
         view[i].status = statusAfter(view[i]);
       });
       document.getElementById('dlg-batch').style.display = 'none';
       var n = selected.length;
       selected = [];
       render();
-      toast(mode.toUpperCase() + ' set on ' + n + ' shipment(s)');
+
+      var okMsg = field.toUpperCase() + ' set on ' + n + ' shipment(s)';
+      if (!online) return toast(okMsg + ' (offline - not saved)', 'warning');
+
+      APEX_API.postJSON('/api/atd-ata/batch-update', { mawbs: mawbs, field: field, value: val })
+        .then(function () { toast(okMsg); })
+        .catch(function (err) {
+          toast('Batch save failed: ' + (err && err.message || err), 'error');
+        });
     }
   };
 
@@ -471,11 +550,21 @@
                                                 function (v) { filters.status = v;   applyFilters(); });
   render();
 
+  // Fixture rows are on screen already; the backend load swaps them for the
+  // persisted ones. Rendering twice avoids an empty grid while the fetch is in
+  // flight, which a bot waiting on the first row would otherwise race.
+  loadFromApi();
+
   try {
     parent.postMessage({ source: 'apex-frame', page: 'updateAtdAta', rows: view.length }, '*');
   } catch (err) { /* cross-origin in production */ }
 
-  window.__APEX_MOCK__ = { page: 'updateAtdAta', rowCount: function () { return view.length; } };
+  window.__APEX_MOCK__ = {
+    page: 'updateAtdAta',
+    rowCount: function () { return view.length; },
+    isOnline: function () { return online; },
+    reload: loadFromApi
+  };
 })();
 </script>
 </body>
