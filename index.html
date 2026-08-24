@@ -314,7 +314,14 @@
       openMenu(msg.index, msg.name);
     } else if (msg.action === 'data-changed') {
       var ic = frameFor(16);
-      if (ic) ic.contentWindow.location.reload();
+      if (ic) {
+        // Frame already mounted — reload it in place and switch to it.
+        ic.contentWindow.location.reload();
+        showFrame(16);
+      } else {
+        // First upload this session: open the tab so data is visible immediately.
+        openMenu(16, 'Import Confirm');
+      }
     }
   });
 
