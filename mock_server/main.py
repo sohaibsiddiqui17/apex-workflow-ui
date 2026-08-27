@@ -49,6 +49,11 @@ app.add_middleware(
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/login.html", include_in_schema=False)
 def frontend_login():
     return FileResponse(os.path.join(FRONTEND_DIR, "login.html"))
