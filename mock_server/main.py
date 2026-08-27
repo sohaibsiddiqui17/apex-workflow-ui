@@ -49,9 +49,29 @@ app.add_middleware(
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
+def _frontend_file(name: str) -> FileResponse:
+    """Serve one of the frontend's top-level pages.
+
+    A deployment whose build context is `mock_server/` alone -- Railway with
+    Root Directory set there, for one -- has no frontend beside it. The static
+    mounts below already skip themselves in that case, but these routes used to
+    hand FileResponse a path that does not exist, which surfaces as a 500 and
+    reads like a broken backend rather than a backend that simply is not
+    serving the UI.
+    """
+    path = os.path.join(FRONTEND_DIR, name)
+    if not os.path.isfile(path):
+        raise HTTPException(
+            404,
+            f"{name} is not part of this deployment -- it serves the API only. "
+            "Deploy from the repository root to serve the portal UI as well.",
+        )
+    return FileResponse(path)
+
+
 @app.get("/login.html", include_in_schema=False)
 def frontend_login():
-    return FileResponse(os.path.join(FRONTEND_DIR, "login.html"))
+    return _frontend_file("login.html")
 
 
 @app.get("/index.html", include_in_schema=False)
@@ -59,7 +79,7 @@ def frontend_login():
 def frontend_app():
     """The HPlus admin shell. It hosts every module in its own iframe, the way
     the real portal does, so this is only layer 2 of 4."""
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+    return _frontend_file("index.html")
 
 
 @app.get("/", include_in_schema=False)
