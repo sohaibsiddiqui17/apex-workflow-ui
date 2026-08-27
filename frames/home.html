@@ -128,7 +128,9 @@
     el.innerHTML = '<p class="el-message__content"></p>';
     el.querySelector('p').textContent = msg;
     document.getElementById('toast-host').appendChild(el);
-    setTimeout(function () { el.remove(); }, 3200);
+    // Errors stay up longer -- a rejected upload used to vanish before the
+    // user looked away from the file picker, which read as "nothing happened".
+    setTimeout(function () { el.remove(); }, type === 'error' ? 7000 : 3200);
   }
 
   function set(id, v) {
@@ -162,7 +164,7 @@
     }
   }
 
-  async function upload(input, path, label) {
+  async function upload(input, path, label, dataset) {
     var file = input.files[0];
     if (!file) return;
     input.value = '';
@@ -174,20 +176,26 @@
       var data = await APEX_API.postForm(path, fd);
       toast(label + ' uploaded — upserted ' + data.upserted + ', skipped ' + data.skipped);
       loadStats();
-      // Tell any open Import Confirm frame to refresh through the shell.
-      parent.postMessage({ source: 'apex-frame', action: 'data-changed' }, '*');
+      // Tell the shell so every open grid re-pulls, not just Import Confirm.
+      parent.postMessage({ source: 'apex-frame', action: 'data-changed',
+                          dataset: dataset }, '*');
     } catch (err) {
-      toast('Upload failed: ' + err.message + ' (is the backend running?)', 'error');
+      // A TypeError means fetch never reached the server; anything else is a
+      // real 4xx whose detail explains itself, and blaming the backend there
+      // hid the actual reason the file was rejected.
+      var unreachable = (err instanceof TypeError);
+      toast('Upload failed: ' + err.message +
+            (unreachable ? ' (is the backend running?)' : ''), 'error');
     } finally {
       if (wrap) { wrap.style.opacity = ''; wrap.style.pointerEvents = ''; }
     }
   }
 
   document.getElementById('up-ic').addEventListener('change', function () {
-    upload(this, '/api/upload/import-confirm', 'Import Confirm');
+    upload(this, '/api/upload/import-confirm', 'Import Confirm', 'import-confirm');
   });
   document.getElementById('up-pr').addEventListener('change', function () {
-    upload(this, '/api/upload/pickup-report', 'Pickup Report');
+    upload(this, '/api/upload/pickup-report', 'Pickup Report', 'pickup-report');
   });
   document.getElementById('btn-refresh').addEventListener('click', function () {
     loadStats();
@@ -208,7 +216,7 @@
   });
 
   loadStats();
-  window.__APEX_MOCK__ = { page: 'home' };
+  window.__APEX_MOCK__ = { page: 'home', reload: loadStats };
 })();
 </script>
 </body>

@@ -317,15 +317,39 @@ def main() -> int:
         check("Batch Update dialog opens",
               ic.locator("#dlg-batch-update").is_visible(), True)
 
-        picker = ic.locator("#batch-update-type")
-        picker.locator(".el-input__inner").first.click()
-        option = picker.locator("li.el-select-dropdown__item", has_text="Flight(Last Leg)").first
-        check("Update Type dropdown actually opens", option.is_visible(), True)
-        option.click()
-        check("Update Type selected",
-              picker.locator(".el-input__inner").first.input_value(), "Flight(Last Leg)")
+        # The dialog carries two selects, not one. "Updated Type" picks which
+        # identifier the Data box lists (MAWB# / HAWB#); "Fields" picks the
+        # column being written. Driving them as a single select looked for
+        # Flight(Last Leg) inside the identifier picker, where it has never
+        # been, and put the flight number in the Data box instead of Value.
+        kind = ic.locator("#batch-update-type")
+        kind.locator(".el-input__inner").first.click()
+        mawb_option = kind.locator("li.el-select-dropdown__item", has_text="MAWB#").first
+        check("Updated Type dropdown actually opens", mawb_option.is_visible(), True)
+        mawb_option.click()
+        check("Updated Type selected",
+              kind.locator(".el-input__inner").first.input_value(), "MAWB#")
 
-        ic.locator("#batch-data").fill("BR0630")
+        # Picking the type re-seeds Data from the ticked rows, so the operator
+        # never retypes the identifiers they just selected.
+        seeded = [ln for ln in (ic.locator("#batch-data").input_value() or "").splitlines() if ln.strip()]
+        check("Data seeded from the three ticked rows", len(seeded), 3)
+        check("seeded Data holds the MAWB read off the grid", mawb in seeded, True)
+
+        field = ic.locator("#batch-field")
+        field.locator(".el-input__inner").first.click()
+        flight_option = field.locator("li.el-select-dropdown__item", has_text="Flight(Last Leg)").first
+        check("Fields dropdown actually opens", flight_option.is_visible(), True)
+        flight_option.click()
+        check("Field selected",
+              field.locator(".el-input__inner").first.input_value(), "Flight(Last Leg)")
+
+        # Flight is free text, so the Value control stays the text box; only ETA
+        # swaps in the datetime picker.
+        check("Value stays a text box for a non-ETA field",
+              ic.locator("#batch-value-text").is_visible(), True)
+
+        ic.locator("#batch-value").fill("BR0630")
         ic.locator('button[data-action="batch-update-apply"]').click()
         page.wait_for_timeout(900)
         check("batch toast",

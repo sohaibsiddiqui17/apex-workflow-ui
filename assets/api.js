@@ -11,6 +11,20 @@
 
   var DEFAULT_BASE = 'https://apex-workflow-backend-production.up.railway.app';
 
+  /* Hostnames that can only be the developer's own machine, a container's view
+     of it, or a private network -- never the public deployment. */
+  function isLocalOrigin() {
+    var host = location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' ||
+           host === '::1' || host === '[::1]' ||
+           /(^|\.)localhost$/.test(host) ||
+           /\.internal$/.test(host) ||          /* host.docker.internal */
+           /\.local$/.test(host) ||
+           /^192\.168\./.test(host) ||
+           /^10\./.test(host) ||
+           /^172\.(1[6-9]|2[0-9]|3[01])\./.test(host);
+  }
+
   function resolveBase() {
     try {
       var q = new URLSearchParams(location.search).get('api');
@@ -23,8 +37,15 @@
     } catch (e) { /* sandboxed iframe without storage */ }
 
     // Served by the mock backend itself? Then talk to the same origin.
+    //
+    // This tested `location.port === '8090'` alone, which failed two ways the
+    // moment the mock moved off that port: the same copy then addressed the
+    // SHARED HOSTED backend, so a local test wrote to real data, and a local
+    // backend that WAS running looked like an offline outage because nothing
+    // ever called it. Decide on the host instead, keeping the port as a
+    // fallback so an existing 8090 setup behaves exactly as before.
     if (location.protocol === 'http:' || location.protocol === 'https:') {
-      if (location.port === '8090') return location.origin;
+      if (isLocalOrigin() || location.port === '8090') return location.origin;
     }
     return DEFAULT_BASE;
   }

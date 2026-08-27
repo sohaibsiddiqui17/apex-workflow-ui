@@ -184,6 +184,26 @@
     return frameHost.querySelector('iframe[name="iframe' + index + '"]');
   }
 
+  /* An upload (or any other write) invalidates every grid that is already
+     mounted, not just Import Confirm -- the old handler hard-coded frame 16,
+     so a Pickup Report upload refreshed the wrong grid and nothing else.
+     Each data frame exposes __APEX_MOCK__.reload(), which re-pulls from the
+     API and keeps the frame's filters and page; a full reload is only the
+     fallback for a frame that has not finished booting. */
+  function refreshDataFrames(origin) {
+    frameHost.querySelectorAll('iframe.J_iframe').forEach(function (f) {
+      try {
+        var win = f.contentWindow;
+        if (!win || win === origin) return;   // the sender refreshed itself
+        var mock = win.__APEX_MOCK__;
+        if (mock && typeof mock.reload === 'function') mock.reload();
+        else win.location.reload();
+      } catch (err) {
+        /* Frame still loading, or file:// opaque origin -- nothing to do. */
+      }
+    });
+  }
+
   function tabFor(index) {
     return tabsHost.querySelector('.J_menuTab[data-index="' + index + '"]');
   }
@@ -313,8 +333,7 @@
     if (msg.action === 'open-menu') {
       openMenu(msg.index, msg.name);
     } else if (msg.action === 'data-changed') {
-      var ic = frameFor(16);
-      if (ic) ic.contentWindow.location.reload();
+      refreshDataFrames(e.source);
     }
   });
 

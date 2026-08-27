@@ -417,7 +417,40 @@ PR_COL_MAP: Dict[str, str] = {
 
 
 def norm_header(h: str) -> str:
-    return str(h).lower().strip()
+    # Excel's "CSV UTF-8" export puts a BOM on the first header cell, which
+    # left the M# column unmapped and failed the whole upload.
+    return str(h).replace("﻿", "").strip().lower()
+
+
+def read_upload(filename: str, contents: bytes) -> pd.DataFrame:
+    """Parse an uploaded Import Confirm / Pickup Report sheet into a DataFrame.
+
+    Two things bit real uploads here. Windows hands over `REPORT.CSV`, so the
+    extension check has to be case-insensitive; and Excel's plain "CSV" export
+    is cp1252, so a single accented shipper name used to fail the whole file
+    with a UnicodeDecodeError.
+    """
+    name = (filename or "").lower()
+    if not name.endswith((".xlsx", ".xls", ".csv")):
+        raise HTTPException(400, "Only .xlsx / .xls / .csv files are accepted")
+
+    if name.endswith(".csv"):
+        last_decode_error: Optional[Exception] = None
+        # latin-1 decodes any byte string, so this loop always terminates with
+        # a DataFrame unless the CSV itself is malformed.
+        for encoding in ("utf-8-sig", "cp1252", "latin-1"):
+            try:
+                return pd.read_csv(io.BytesIO(contents), dtype=str, encoding=encoding)
+            except UnicodeDecodeError as exc:
+                last_decode_error = exc
+            except Exception as exc:
+                raise HTTPException(422, f"Failed to parse file: {exc}")
+        raise HTTPException(422, f"Failed to decode CSV text: {last_decode_error}")
+
+    try:
+        return pd.read_excel(io.BytesIO(contents), dtype=str)
+    except Exception as exc:
+        raise HTTPException(422, f"Failed to parse file: {exc}")
 
 
 def map_df_to_db(df: pd.DataFrame, col_map: Dict[str, str]) -> pd.DataFrame:
@@ -488,8 +521,47 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+_TABLE_COLUMNS: Dict[str, frozenset] = {}
+
+
+def table_columns(conn: sqlite3.Connection, table: str) -> frozenset:
+    """The columns `table` actually has, read from SQLite once and cached.
+
+    Both upserts below build their SQL by interpolating the row's own keys, and
+    those rows arrive from uploaded spreadsheets and from /bulk's free-form
+    JSON. An unrecognised key was a 500 at best -- and, since it lands in the
+    statement rather than in a parameter, a way to write arbitrary SQL at
+    worst. Filtering against the live schema keeps that impossible without a
+    hand-maintained column list that would drift the next time one is added.
+    """
+    cached = _TABLE_COLUMNS.get(table)
+    if cached is None:
+        # `table` is always one of this module's own literals, never caller input.
+        rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+        cached = frozenset(r["name"] for r in rows)
+        _TABLE_COLUMNS[table] = cached
+    return cached
+
+
+def known_columns_only(
+    conn: sqlite3.Connection, table: str, row: Dict[str, Any], key: str
+) -> Dict[str, Any]:
+    """`row` reduced to real columns of `table`, minus the surrogate id."""
+    allowed = table_columns(conn, table)
+    clean = {k: v for k, v in row.items() if k in allowed and k != "id"}
+    if not clean.get(key):
+        raise HTTPException(422, f"Row is missing its {key}")
+    return clean
+
+
 def _upsert_import_confirm(conn: sqlite3.Connection, row: Dict[str, Any]) -> None:
-    row.setdefault("bot_status", "pending")
+    # A sheet never carries bot_status, and re-uploading one used to stamp
+    # every matching MAWB back to 'pending', wiping the bot's own results.
+    # New rows get 'pending' from the column default instead; existing rows
+    # keep what the bot wrote unless the caller states a value.
+    if not row.get("bot_status"):
+        row.pop("bot_status", None)
+    row = known_columns_only(conn, "import_confirm", row, "mawb")
     row["last_updated"] = now_iso()
     cols = list(row.keys())
     placeholders = ", ".join(["?" for _ in cols])
@@ -502,6 +574,7 @@ def _upsert_import_confirm(conn: sqlite3.Connection, row: Dict[str, Any]) -> Non
 
 
 def _upsert_pickup_report(conn: sqlite3.Connection, row: Dict[str, Any]) -> None:
+    row = known_columns_only(conn, "pickup_report", row, "bl_no")
     cols = list(row.keys())
     placeholders = ", ".join(["?" for _ in cols])
     updates = ", ".join([f"{c}=excluded.{c}" for c in cols if c != "bl_no"])
@@ -541,17 +614,8 @@ def login(req: LoginRequest):
 
 @app.post("/api/upload/import-confirm", summary="Upload Import Confirm .xlsx")
 async def upload_import_confirm(file: UploadFile = File(...)):
-    if not file.filename.endswith((".xlsx", ".xls", ".csv")):
-        raise HTTPException(400, "Only .xlsx / .xls / .csv files are accepted")
-
     contents = await file.read()
-    try:
-        if file.filename.endswith(".csv"):
-            df = pd.read_csv(io.BytesIO(contents), dtype=str)
-        else:
-            df = pd.read_excel(io.BytesIO(contents), dtype=str)
-    except Exception as exc:
-        raise HTTPException(422, f"Failed to parse file: {exc}")
+    df = read_upload(file.filename, contents)
 
     df = map_df_to_db(df, IC_COL_MAP)
     df = df_to_str(df)
@@ -580,17 +644,8 @@ async def upload_import_confirm(file: UploadFile = File(...)):
 
 @app.post("/api/upload/pickup-report", summary="Upload Pickup Report .xlsx")
 async def upload_pickup_report(file: UploadFile = File(...)):
-    if not file.filename.endswith((".xlsx", ".xls", ".csv")):
-        raise HTTPException(400, "Only .xlsx / .xls / .csv files are accepted")
-
     contents = await file.read()
-    try:
-        if file.filename.endswith(".csv"):
-            df = pd.read_csv(io.BytesIO(contents), dtype=str)
-        else:
-            df = pd.read_excel(io.BytesIO(contents), dtype=str)
-    except Exception as exc:
-        raise HTTPException(422, f"Failed to parse file: {exc}")
+    df = read_upload(file.filename, contents)
 
     df = map_df_to_db(df, PR_COL_MAP)
     df = df_to_str(df)

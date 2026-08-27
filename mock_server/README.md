@@ -97,6 +97,13 @@ Supported aliases are defined in `IC_COL_MAP` / `PR_COL_MAP` in `main.py`.
 **Minimum required column for Import Confirm:** `M#` or `MAWB`  
 **Minimum required column for Pickup Report:** `BL No` or `B/L`
 
+The extension check is case-insensitive, so `REPORT.CSV` is accepted. CSV text is
+decoded as `utf-8-sig`, then `cp1252`, then `latin-1`, which covers both of
+Excel's "CSV UTF-8" and plain "CSV" exports (BOM and accented characters alike).
+
+Re-uploading a sheet updates the matching rows in place and leaves `bot_status`
+alone, so a re-import does not discard results the bot has already written.
+
 ---
 
 ## Example curl calls

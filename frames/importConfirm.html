@@ -480,7 +480,10 @@
     if (!window.APEX_API) return Promise.resolve(false);
     return APEX_API.getJSON('/api/import-confirm?page_size=500').then(function (data) {
       var items = (data && data.items) || [];
-      if (!items.length) return false;
+      // Before the first successful load an empty table means "the backend
+      // has nothing yet", so the fixture rows stay. Once online, an empty
+      // result is real -- returning early there left deleted rows on screen.
+      if (!items.length && !online) return false;
       allRows = items.map(APEX_API.rowFromApi);
       online = true;
       applyFilters();
