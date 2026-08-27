@@ -67,6 +67,9 @@ def _frontend_file(name: str) -> FileResponse:
             "Deploy from the repository root to serve the portal UI as well.",
         )
     return FileResponse(path)
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok"}
 
 
 @app.get("/login.html", include_in_schema=False)
