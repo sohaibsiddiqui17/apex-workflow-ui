@@ -465,9 +465,11 @@
   'use strict';
 
   var SCOPE   = 'data-v-47b11b5c';
-  // Fixture rows are the offline fallback; /api/import-confirm is the real
-  // source once the backend answers. It seeds itself from this same fixture.
-  var rows    = APEX_DATA.IC_PENDING_DATA.slice();
+  // /api/import-confirm is the only source of rows. The grid starts empty and
+  // stays empty until the backend answers with something: fixture rows used to
+  // stand in here, which meant an empty backend looked like a populated portal
+  // and every write against those phantom rows was silently discarded.
+  var rows    = [];
   var columns = APEX_DATA.IC_COLUMNS;
   var selected = [];
   var online   = false;
@@ -480,10 +482,9 @@
     if (!window.APEX_API) return Promise.resolve(false);
     return APEX_API.getJSON('/api/import-confirm?page_size=500').then(function (data) {
       var items = (data && data.items) || [];
-      // Before the first successful load an empty table means "the backend
-      // has nothing yet", so the fixture rows stay. Once online, an empty
-      // result is real -- returning early there left deleted rows on screen.
-      if (!items.length && !online) return false;
+      // An empty result is taken at face value, first load included: the
+      // backend having no rows is a real state that the grid must show as
+      // "No Data" rather than paper over.
       allRows = items.map(APEX_API.rowFromApi);
       online = true;
       applyFilters();
@@ -1060,8 +1061,9 @@
         .join('\n');
     });
   renderMain();
-  // Fixture rows render first so the grid is never briefly empty; the backend
-  // load then swaps in the persisted ones.
+  // The first render is an empty grid on purpose -- the backend is the only
+  // source of rows, so anything on screen before this resolves would be
+  // invented. A bot must wait for rows to appear rather than for a reload.
   loadFromApi();
   announce();
 

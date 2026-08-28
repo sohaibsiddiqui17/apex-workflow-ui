@@ -109,7 +109,18 @@ if os.path.isdir(_frames_dir):
 
 # On Railway a persistent volume is mounted at /data.
 # Locally we keep the DB next to main.py.
-_data_dir = "/data" if os.path.isdir("/data") else os.path.dirname(__file__)
+#
+# The POSIX guard is not decoration: on Windows a bare "/data" resolves against
+# the current drive, so an unrelated C:\data on a developer's machine captured
+# the database -- the server read and wrote there while every `rm` and `ls` in
+# mock_server/ found nothing, which reads as a backend that ignores its own
+# data. Railway runs Linux, so restricting the probe costs nothing there.
+#
+# APEX_DB_DIR overrides both, for pointing a test run at a throwaway directory.
+_data_dir = os.environ.get("APEX_DB_DIR") or (
+    "/data" if os.name == "posix" and os.path.isdir("/data")
+    else os.path.dirname(__file__)
+)
 DB_PATH = os.path.join(_data_dir, "apex_mock.db")
 
 
@@ -756,6 +767,22 @@ def get_import_confirm(mawb: str):
     return dict(row)
 
 
+@app.delete("/api/import-confirm/{mawb}", summary="Delete one Import Confirm row")
+def delete_import_confirm(mawb: str):
+    """Remove a single shipment.
+
+    /api/reset is the only other way to remove anything, and it empties the
+    table -- no use at all when what needs clearing is a handful of leftover
+    demo rows sitting among imported ones that cannot be re-uploaded. Deleting
+    by MAWB rather than by id so a caller works from what the grid shows.
+    """
+    with get_conn() as conn:
+        cur = conn.execute("DELETE FROM import_confirm WHERE mawb = ?", [mawb])
+        if cur.rowcount == 0:
+            raise HTTPException(404, f"MAWB {mawb!r} not found")
+    return {"status": "ok", "mawb": mawb, "deleted": 1}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Bot write-back endpoints
 # ─────────────────────────────────────────────────────────────────────────────
@@ -980,6 +1007,17 @@ def get_atd_ata(mawb: str):
     return dict(row)
 
 
+@app.delete("/api/atd-ata/{mawb}", summary="Delete one Update ATD&ATA row")
+def delete_atd_ata(mawb: str):
+    """Remove a single shipment from this grid. The Import Confirm counterpart
+    explains why deleting one row has to be possible at all."""
+    with get_conn() as conn:
+        cur = conn.execute("DELETE FROM atd_ata WHERE mawb = ?", [mawb])
+        if cur.rowcount == 0:
+            raise HTTPException(404, f"MAWB {mawb!r} not found")
+    return {"status": "ok", "mawb": mawb, "deleted": 1}
+
+
 @app.patch("/api/atd-ata/{mawb}", summary="Write ATD/ATA back for a single MAWB")
 def patch_atd_ata(mawb: str, payload: AtdAtaUpdate):
     updates = {k: v for k, v in payload.model_dump().items() if v is not None}
@@ -1044,16 +1082,72 @@ def batch_update_atd_ata(payload: Dict[str, Any] = Body(...)):
     }
 
 
+@app.post("/api/atd-ata/bulk", summary="Bulk upsert Update ATD&ATA rows (ingest)")
+def bulk_upsert_atd_ata(rows: List[Dict[str, Any]] = Body(...)):
+    """Populate the Update ATD&ATA grid, the way /api/import-confirm/bulk does.
+
+    `seed_fixtures()` only fills this table when it can read
+    `assets/apex-data.js`, which a deployment whose build context is
+    `mock_server/` alone does not ship -- so on those the grid comes up empty
+    and SOP #2 has nothing to write against. This is the way to fill it without
+    /api/reset, which clears both tables and would reseed neither.
+
+    Status is derived rather than trusted when absent, so a caller cannot leave
+    the grid claiming a milestone the timestamps contradict.
+    """
+    upserted = 0
+    skipped = 0
+    errors: List[Dict] = []
+
+    with get_conn() as conn:
+        for row in rows:
+            mawb = str(row.get("mawb", "")).strip()
+            if not mawb or mawb in ("", "nan", "None"):
+                skipped += 1
+                continue
+            clean = {
+                k: (str(v).strip()
+                    if v is not None and str(v).strip() not in ("", "nan", "None") else None)
+                for k, v in row.items()
+            }
+            clean["mawb"] = mawb
+            if not clean.get("status"):
+                clean["status"] = _atd_ata_status(clean)
+            try:
+                clean = known_columns_only(conn, "atd_ata", clean, "mawb")
+                clean["last_updated"] = now_iso()
+                cols = list(clean)
+                conn.execute(
+                    f"INSERT INTO atd_ata ({', '.join(cols)}) "
+                    f"VALUES ({', '.join('?' for _ in cols)}) "
+                    f"ON CONFLICT(mawb) DO UPDATE SET "
+                    + ", ".join(f"{c}=excluded.{c}" for c in cols if c != "mawb"),
+                    [clean[c] for c in cols],
+                )
+                upserted += 1
+            except Exception as exc:  # noqa: BLE001
+                skipped += 1
+                errors.append({"mawb": mawb, "error": str(exc)})
+
+    return {"status": "ok", "upserted": upserted, "skipped": skipped, "errors": errors}
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Reset (test utility)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@app.post("/api/reset", summary="Clear all data and reseed fixtures (test use only)")
-def reset_db():
-    """Wipe the tables, then reseed the two fixture-backed grids.
+@app.post("/api/reset", summary="Clear all data (test use only)")
+def reset_db(seed: bool = Query(False)):
+    """Wipe the tables. Imported data is the only data, so this leaves them empty.
 
-    Reseeding rather than leaving them empty is deliberate: the UI renders those
-    rows regardless, so an empty table would make every bot write 404.
+    This used to reseed unconditionally, back when the frames rendered the
+    `assets/apex-data.js` fixtures whether or not the backend had anything --
+    an empty table then made every bot write 404. The frames no longer invent
+    rows, so an empty table reads as empty on screen too, and reseeding would
+    only put dummy shipments back into a portal meant to hold imported ones.
+
+    `?seed=true` is the opt-in for the structural test suite, which needs known
+    rows to assert against. Nothing in normal operation passes it.
     """
     with get_conn() as conn:
         cleared = {
@@ -1068,7 +1162,7 @@ def reset_db():
             "WHERE name IN ('import_confirm','pickup_report','atd_ata')"
         )
 
-    reseeded = seed_fixtures(force=True)
+    reseeded = seed_fixtures(force=True) if seed else {"atd_ata": 0, "import_confirm": 0}
     return {"status": "ok", "cleared": cleared, "reseeded": reseeded}
 
 
@@ -1090,7 +1184,9 @@ def root():
     }
 
 
-# Seed on startup. This lives at the bottom of the module rather than beside
-# init_db() because seed_fixtures() calls now_iso(), defined further up only
-# after the Pydantic schemas.
-seed_fixtures()
+# Nothing is seeded on startup. The portal holds imported shipments only, so a
+# fresh database comes up empty and stays that way until a spreadsheet is
+# uploaded or a bot ingests rows -- a restart must never reintroduce the
+# `assets/apex-data.js` fixtures alongside real data. `seed_fixtures()` is kept
+# for `POST /api/reset?seed=true`, which the structural test suite uses to get
+# known rows to assert against.

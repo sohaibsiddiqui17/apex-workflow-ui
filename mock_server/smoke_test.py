@@ -63,8 +63,13 @@ def main() -> int:
     # Start from seeded fixtures: the write-back assertions below compare
     # against known values, so a DB left dirty by an earlier run would fail them
     # for the wrong reason.
+    #
+    # `seed=true` is required now that the portal holds imported shipments only
+    # -- a plain reset leaves both grids empty, which is right for the running
+    # app and useless for a suite that has to have rows to click on. This is the
+    # one caller that should ever pass it.
     try:
-        requests.post(f"{BASE}/api/reset", timeout=10).raise_for_status()
+        requests.post(f"{BASE}/api/reset", params={"seed": "true"}, timeout=10).raise_for_status()
     except requests.RequestException as exc:
         print(f"WARNING: could not reset the backend ({exc}); "
               f"write-back assertions may be comparing against stale data")

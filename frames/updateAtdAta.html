@@ -201,10 +201,11 @@
   'use strict';
 
   var SCOPE    = 'data-v-8769da1a';
-  // The fixture is the offline fallback; /api/atd-ata is the real source once
-  // the backend answers. Both carry the same 10 rows -- the backend seeds
-  // itself from this very file.
-  var ALL      = APEX_DATA.ATD_ATA_DATA.slice();
+  // /api/atd-ata is the only source of rows. The grid starts empty and stays
+  // empty until the backend answers with something: fixture rows used to stand
+  // in here, which meant an empty backend looked like a populated portal and
+  // every write against those phantom rows was silently discarded.
+  var ALL      = [];
   var columns  = APEX_DATA.ATD_COLUMNS;
   var view     = ALL.slice();
   var selected = [];
@@ -238,17 +239,21 @@
     if (!window.APEX_API) return Promise.resolve(false);
     return APEX_API.getJSON('/api/atd-ata').then(function (data) {
       var items = (data && data.items) || [];
-      // Before the first successful load an empty table means "the backend
-      // has nothing yet", so the fixture rows stay. Once online, an empty
-      // result is real -- returning early there left deleted rows on screen.
-      if (!items.length && !online) return false;
+      // An empty result is taken at face value, first load included: the
+      // backend having no rows is a real state that the grid must show as
+      // "No Data" rather than paper over.
       ALL = items.map(rowFromApi);
       online = true;
+      // The Customer / POD pickers are built from whatever rows are loaded, so
+      // they have to be rebuilt here -- built once at startup they would list
+      // the values of a grid that is no longer on screen.
+      buildDataFilters();
       applyFilters();
       return true;
     }).catch(function () {
-      // Served from file:// or the backend is down. The fixture rows are
-      // already on screen; edits just will not persist.
+      // Served from file:// or the backend is down. Nothing is on screen and
+      // nothing can be saved; the grid says "No Data" rather than inventing
+      // rows that no write would ever reach.
       return false;
     });
   }
@@ -344,6 +349,26 @@
   }
 
   var filters = { customer: 'All', pod: 'All', status: 'All' };
+
+  /* The two pickers whose options come from the rows themselves, rebuilt on
+     every load. Status is not among them -- its vocabulary is APEX_ENUMS, not
+     whatever happens to be on the grid.
+
+     An active filter survives the rebuild when its value is still represented
+     in the new rows; a reload after a write must not silently widen what the
+     operator is looking at. A value that has gone falls back to All, since
+     leaving it selected would filter the grid down to nothing. */
+  function buildDataFilters() {
+    [['flt-customer', 'customer'], ['flt-pod', 'pod']].forEach(function (pair) {
+      var hostId = pair[0], key = pair[1];
+      var options = uniq(key);
+      if (options.indexOf(filters[key]) === -1) filters[key] = 'All';
+      buildSelect(hostId, options, function (v) { filters[key] = v; applyFilters(); });
+      if (filters[key] !== 'All') {
+        document.getElementById(hostId).querySelector('.el-input__inner').value = filters[key];
+      }
+    });
+  }
 
   function applyFilters() {
     view = ALL.filter(function (r) {
@@ -547,15 +572,14 @@
 
   /* ------------------------------------------------------------------ init */
 
-  buildSelect('flt-customer', uniq('customer'), function (v) { filters.customer = v; applyFilters(); });
-  buildSelect('flt-pod',      uniq('pod'),      function (v) { filters.pod = v;      applyFilters(); });
+  buildDataFilters();
   buildSelect('flt-status',   ['All'].concat(APEX_ENUMS.ATD_STATUS),
                                                 function (v) { filters.status = v;   applyFilters(); });
   render();
 
-  // Fixture rows are on screen already; the backend load swaps them for the
-  // persisted ones. Rendering twice avoids an empty grid while the fetch is in
-  // flight, which a bot waiting on the first row would otherwise race.
+  // The first render is an empty grid on purpose -- the backend is the only
+  // source of rows, so anything on screen before this resolves would be
+  // invented. A bot must wait for rows to appear rather than for a reload.
   loadFromApi();
 
   try {
