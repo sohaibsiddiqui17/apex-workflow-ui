@@ -450,6 +450,50 @@ PR_COL_MAP: Dict[str, str] = {
 }
 
 
+#: Update ATD&ATA grid headers -> atd_ata columns. The grid names three fields
+#: differently from Import Confirm -- arrival is "ETA (Destination)", departure
+#: is "ETD (Original)", and the table's flight column is plain `flight` -- so
+#: this is its own map rather than a reuse of IC_COL_MAP.
+AA_COL_MAP: Dict[str, str] = {
+    # MAWB / HAWB / customer
+    "m#": "mawb",
+    "mawb": "mawb",
+    "master awb": "mawb",
+    "master_awb": "mawb",
+    "h#": "hawb",
+    "hawb": "hawb",
+    "house awb": "hawb",
+    "customer": "customer",
+    "hawb customer": "customer",
+    "hawb customer / account code / cid / gid": "customer",
+    "hawb_customer": "customer",
+    # Routing
+    "airline": "airline",
+    "flight no": "flight",
+    "flight_no": "flight",
+    "flightno": "flight",
+    "flight": "flight",
+    "pol": "pol",
+    "pod": "pod",
+    # Dates
+    "eta (destination)": "eta",
+    "eta destination": "eta",
+    "eta": "eta",
+    "etd (original)": "etd_orig",
+    "etd original": "etd_orig",
+    "etd_orig": "etd_orig",
+    "etd": "etd_orig",
+    # The grid's own header cell reads "SLA Date-", dash included.
+    "sla date-": "sla_date",
+    "sla date": "sla_date",
+    "sla_date": "sla_date",
+    # Milestones
+    "atd": "atd",
+    "ata": "ata",
+    "status": "status",
+}
+
+
 def norm_header(h: str) -> str:
     # Excel's "CSV UTF-8" export puts a BOM on the first header cell, which
     # left the M# column unmapped and failed the whole upload.
@@ -619,6 +663,25 @@ def _upsert_pickup_report(conn: sqlite3.Connection, row: Dict[str, Any]) -> None
     conn.execute(sql, [row[c] for c in cols])
 
 
+def _upsert_atd_ata(conn: sqlite3.Connection, row: Dict[str, Any]) -> None:
+    # A sheet exported from the grid may or may not carry Status. Derive it
+    # from the milestones when it does not, exactly as /api/atd-ata/bulk and
+    # the grid's own statusAfter() do, so the three can never disagree about
+    # whether a shipment is Completed.
+    if not row.get("status"):
+        row["status"] = _atd_ata_status(row)
+    row = known_columns_only(conn, "atd_ata", row, "mawb")
+    row["last_updated"] = now_iso()
+    cols = list(row.keys())
+    placeholders = ", ".join(["?" for _ in cols])
+    updates = ", ".join([f"{c}=excluded.{c}" for c in cols if c != "mawb"])
+    sql = (
+        f"INSERT INTO atd_ata ({', '.join(cols)}) VALUES ({placeholders})"
+        f" ON CONFLICT(mawb) DO UPDATE SET {updates}"
+    )
+    conn.execute(sql, [row[c] for c in cols])
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Auth endpoint
 # ─────────────────────────────────────────────────────────────────────────────
@@ -699,6 +762,51 @@ async def upload_pickup_report(file: UploadFile = File(...)):
             row["bl_no"] = str(bl_no).strip()
             try:
                 _upsert_pickup_report(conn, row)
+                upserted += 1
+            except Exception:
+                skipped += 1
+
+    return {"status": "ok", "upserted": upserted, "skipped": skipped}
+
+
+@app.post("/api/upload/atd-ata", summary="Upload Update ATD&ATA .xlsx")
+async def upload_atd_ata(file: UploadFile = File(...)):
+    """Fill the Update ATD&ATA grid from a sheet, as the other two grids are.
+
+    Without this the grid could only be populated by `seed_fixtures()` (which
+    needs a file a mock_server-rooted deployment does not ship) or by posting
+    JSON to /api/atd-ata/bulk -- so clearing it left SOP #2 with nothing to
+    write against and no way back in from the Dashboard.
+    """
+    contents = await file.read()
+    df = read_upload(file.filename, contents)
+
+    df = map_df_to_db(df, AA_COL_MAP)
+    df = df_to_str(df)
+
+    if "mawb" not in df.columns:
+        raise HTTPException(422, "Could not find a MAWB / M# column in the file")
+
+    upserted = 0
+    skipped = 0
+    with get_conn() as conn:
+        for _, row_s in df.iterrows():
+            # Drop blank cells rather than carrying them through. A blank in a
+            # sheet arrives as float NaN, which df_to_str does not always turn
+            # back into None -- and NaN is truthy, so a row with no ATA still
+            # looked like it had one and every upload derived "Completed".
+            row = {
+                k: v for k, v in row_s.to_dict().items()
+                if v is not None and pd.notna(v)
+                and str(v).strip() not in ("", "nan", "None")
+            }
+            mawb = row.get("mawb")
+            if not mawb:
+                skipped += 1
+                continue
+            row["mawb"] = str(mawb).strip()
+            try:
+                _upsert_atd_ata(conn, row)
                 upserted += 1
             except Exception:
                 skipped += 1

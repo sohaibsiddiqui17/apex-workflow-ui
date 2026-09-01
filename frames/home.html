@@ -86,6 +86,10 @@
         <i class="fa fa-upload"></i> Upload Pickup Report
         <input type="file" accept=".xlsx,.xls,.csv" style="display:none" id="up-pr">
       </label>
+      <label class="el-button el-button--warning el-button--small" style="cursor:pointer;">
+        <i class="fa fa-upload"></i> Upload ATD&amp;ATA
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" id="up-aa">
+      </label>
       <button type="button" class="el-button el-button--default el-button--small" id="btn-refresh">
         <i class="fa fa-sync"></i> Refresh Stats
       </button>
@@ -196,6 +200,9 @@
   });
   document.getElementById('up-pr').addEventListener('change', function () {
     upload(this, '/api/upload/pickup-report', 'Pickup Report', 'pickup-report');
+  });
+  document.getElementById('up-aa').addEventListener('change', function () {
+    upload(this, '/api/upload/atd-ata', 'Update ATD&ATA', 'atd-ata');
   });
   document.getElementById('btn-refresh').addEventListener('click', function () {
     loadStats();
